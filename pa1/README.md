@@ -28,22 +28,22 @@
 
 - navigate your browser to `http://localhost` and log in with provided email and password
 
-- navigate to *Add New Server* on Welcome page
+- navigate to **Add New Server** on Welcome page
 
-- fill in *Name* entry (e. g. postgresql-wier) in *General* tab
+- fill in **Name** entry (e. g. postgresql-wier) in **General** tab
 
-- *For Docker on WSL2, didn't check on other Docker setup options for Windows!!!*: open command prompt and type: `ipconfig`
+- **For Docker on WSL2, didn't check on other Docker setup options for Windows!!!**: open command prompt and type: `ipconfig`
    look for IP address of WSL adapter in the output of ipconfig command
 
-- fill in *Host name/address* entry in *Connection* tab with IP (WSL2) or localhost (otherwise?)
+- fill in **Host name/address** entry in **Connection** tab with IP (WSL2) or localhost (otherwise?)
 
-- fill in *Username* and *Password* used for database container and save
+- fill in **Username** and **Password** used for database container and save
 
-- select *Servers -> postgresql-wier (or your server name) -> Databases -> postgres*
+- select **Servers -> postgresql-wier (or your server name) -> Databases -> postgres**
 
-- with database selected open now available *Tools -> Query Tool* from main toolbar
+- with database selected open now available **Tools -> Query Tool** from main toolbar
 
-- paste contents of `db/init-scripts/crawldb.sql` into *Query Editor*
+- paste contents of `db/init-scripts/crawldb.sql` into **Query Editor**
 
 - execute query (toolbar or F5)
 
