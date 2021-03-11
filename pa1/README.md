@@ -63,3 +63,8 @@
 
 - to check logs:
   `docker logs -f container-name`
+
+# Config file
+
+`examples/config.ini` provides example config file for database connection. This file can
+be copied to the `pa1` folder and modified as necessary.
