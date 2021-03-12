@@ -9,7 +9,6 @@ import logging
 import time
 import datetime
 from urllib.parse import urlparse, urljoin
-from urllib.robotparser import RobotFileParser
 
 
 USER_AGENT = "fri-wier-kjb"
