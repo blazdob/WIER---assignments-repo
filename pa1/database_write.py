@@ -1,6 +1,7 @@
 
-def write_url_to_db(conn, links, page_index):
+def write_url_to_db(conn, links, pg_index):
     return 0
+
 
 def write_site_to_db(conn, domain, robots_content, sitemap_content):
     cur = conn.cursor()
@@ -14,13 +15,13 @@ def write_site_to_db(conn, domain, robots_content, sitemap_content):
         conn.commit()
         cur.close()
 
-def write_page_data_to_db(conn, page_id, data_type_code, data):
+def write_pg_data_to_db(conn, pg_id, data_type_code, data):
     cur = conn.cursor()
 
-    sql = 'INSERT INTO crawldb.page_data (page_id, data_type_code,data) ' \
+    sql = 'INSERT INTO crawldb.pg_data (pg_id, data_type_code,data) ' \
           'VALUES (%s,%s,%s)'
     try:
-        cur.execute(sql, (page_id, data_type_code, data))
+        cur.execute(sql, (pg_id, data_type_code, data))
         conn.commit()
         cur.close()
     except Exception:
@@ -29,5 +30,17 @@ def write_page_data_to_db(conn, page_id, data_type_code, data):
         cur.close()
 
 
-def write_image_to_db(conn, page_id, filename, content_type, data, accessed_time):
-    return 0
+def write_img_to_db(conn, imgs_data, url):
+    for img in imgs_data:
+        cur = conn.cursor()
+        sql = 'INSERT INTO crawldb.image (page_id, filename, content_type, data, accessed_time) ' \
+              'VALUES ((SELECT id from crawldb.page WHERE url=%s), %s, %s, %s , %s )'
+        try:
+            cur.execute(sql, (url, img[0], img[1], img[2], img[3], ))
+            conn.commit()
+            cur.close()
+        except Exception as e:
+            conn.rollback()
+            print(e)
+            conn.commit()
+            cur.close()
