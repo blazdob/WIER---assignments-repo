@@ -12,13 +12,12 @@ def write_site_to_db(conn, domain, robots_content, sitemap_content):
         cur.close()
     except Exception:
         conn.rollback()
-        conn.commit()
         cur.close()
 
 def write_pg_data_to_db(conn, pg_id, data_type_code, data):
     cur = conn.cursor()
 
-    sql = 'INSERT INTO crawldb.pg_data (pg_id, data_type_code,data) ' \
+    sql = 'INSERT INTO crawldb.pg_data (page_id, data_type_code,data) ' \
           'VALUES (%s,%s,%s)'
     try:
         cur.execute(sql, (pg_id, data_type_code, data))
@@ -26,7 +25,6 @@ def write_pg_data_to_db(conn, pg_id, data_type_code, data):
         cur.close()
     except Exception:
         conn.rollback()
-        conn.commit()
         cur.close()
 
 
@@ -41,6 +39,4 @@ def write_img_to_db(conn, imgs_data, url):
             cur.close()
         except Exception as e:
             conn.rollback()
-            print(e)
-            conn.commit()
             cur.close()
