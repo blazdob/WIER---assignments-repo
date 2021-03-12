@@ -8,13 +8,17 @@
 - psycopg2: python driver for PostgreSQL
 `conda install notebook psycopg2`
 
+# pip packages
+
+Some python packages needed by crawler can be installed with pip:
+`pip install requirements.txt`
+
 # PostgreSQL in Docker setup (with db/init-scripts mount)
 
 - change directory to pa1 folder of repository
 
 - first time database container run:
   `docker run --name postgresql-wier -e POSTGRES_PASSWORD=password -e POSTGRES_USER=user -v $PWD/db/pgdata:/var/lib/postgresql/data -v $PWD/db/init-scripts:/docker-entrypoint-initdb.d -p 5432:5432 -d postgres:12`
-
 
 # PostgreSQL and pgAdmin in Docker setup (no db/init-scripts mount)
 
@@ -49,7 +53,6 @@
 
 - you can now logout and close the browser
 
-
 # Operating containers
 
 - start containers:
@@ -66,5 +69,5 @@
 
 # Config file
 
-`examples/config.ini` provides example config file for database connection. This file can
+`examples/config.ini` provides example config file for crawler. This file can
 be copied to the `pa1` folder and modified as necessary.
