@@ -94,7 +94,7 @@ class Site(object):
                     self.delay = int(value)
 
     def update_db_site(self, db):
-        self.id = db.insert_or_update_site(self.domain, self.robotstr, self.sitemap)
+        self.id = db.insert_or_update_site(self.domain, self.robotstr)
     
     def update_access(self):
         self.last_access = datetime.datetime.now()
