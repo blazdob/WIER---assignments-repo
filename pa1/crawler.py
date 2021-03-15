@@ -3,7 +3,8 @@ import time
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 import urllib.request
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, SoupStrainer
+import re
 
 
 SEED_URLS = ['http://gov.si', 'http://evem.gov.si', 'http://e-uprava.gov.si', 'http://e-prostor.gov.si']
@@ -11,6 +12,8 @@ WEB_PAGE_ADDRESS =SEED_URLS[0]              #trenutno samo za eno
 USER_AGENT = 'fri-wier-KJB'
 WEB_DRIVER_LOCATION = "./chromedriver"
 TIMEOUT = 5
+
+TAGS = ['a', 'link']
 
 
 def crawler():
@@ -52,7 +55,38 @@ def crawler():
 
     print(f"Web page message: '{page_msg.text}'")
 
+
+    # Fetching links and images
+    parser = 'html.parser'
+    soup = BeautifulSoup(html, parser)
+    print(f"Web page links:", fetchLinks(soup))
+    print(f"Web page images:", fetchImages(soup))
+
     driver.close()
+
+
+def fetchLinks(soup):
+    links = []
+    regex = "(https?:\/\/(.+?\.)?gov\.si(\/[A-Za-z0-9\-\._~:\/\?#\[\]@!$&'\(\)\*\+,;\=]*)?)"
+
+    for link in soup.find_all(TAGS):
+        m = re.search(regex, link.get('href'))
+        if m != None:
+            links.append(m.group(0))
+
+    return links
+
+def fetchImages(soup):
+    images = []
+
+    for link in soup.find_all('img'):
+        images.append(link.get('src'))
+
+    return images
+
+
+
+
 
 
 if __name__ == "__main__":
