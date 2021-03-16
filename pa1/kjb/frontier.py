@@ -53,7 +53,7 @@ class Frontier(object):
             if not site.agent.allowed(url):
                 logging.debug("frontier: insert_page: given URL is not allowed")
                 return
-            _db.insert_page(url)
+            _db.insert_page(url, site.id)
             try:
                 _queue.index(url)
             except ValueError: # url is not yet in queue
@@ -79,7 +79,7 @@ class Frontier(object):
 class Site(object):
 
     def __init__(self, domain):
-        self._id = None
+        self.id = None
         self._domain = domain
         self._robotstr = ""
         self._sitemap = ""
@@ -107,7 +107,7 @@ class Site(object):
             self.delay = DELAY
 
     def update_db_site(self, db):
-        self._id = db.insert_or_update_site(self._domain, self._robotstr)
+        self.id = db.insert_or_update_site(self._domain, self._robotstr)
     
     def update_access(self):
         self.last_access = datetime.datetime.now()
