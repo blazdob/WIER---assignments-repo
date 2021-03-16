@@ -8,6 +8,7 @@ import requests
 import logging
 import time
 import datetime
+import collections
 
 from urllib.parse import urlparse, urljoin, urldefrag
 from reppy.robots import Robots
@@ -25,6 +26,7 @@ class Frontier(object):
     _db = None
     _lock = threading.Lock()
     _hosts = {}
+    _queue = collections.deque()
 
     def __init__(self, db):
         _db = db
@@ -52,6 +54,26 @@ class Frontier(object):
                 logging.debug("frontier: insert_page: given URL is not allowed")
                 return
             _db.insert_page(url)
+            try:
+                _queue.index(url)
+            except ValueError: # url is not yet in queue
+                _queue.appendleft(url)
+            else:
+                logging.debug("frontier: insert_page: URL already in frontier")
+
+    def get_next_page(self):
+        with _lock:
+            url = _queue.pop()
+            domain = urlparse(url).netloc
+            site = self._hosts[domain]
+            diff = datetime.datetime.now() - site.last_access
+            delta = datetime.timedelta(days=0, seconds=site.delay)
+            if diff > delta:
+                delay = 0
+            else:
+                delay = (delta - diff).seconds
+            site.update_access()
+            return url, delay
 
 
 class Site(object):
