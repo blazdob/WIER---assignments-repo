@@ -9,8 +9,9 @@ import logging
 import time
 import datetime
 
-from urllib.parse import urlparse, urljoin
+from urllib.parse import urlparse, urljoin, urldefrag
 from reppy.robots import Robots
+from url_normalize import url_normalize
 
 
 USER_AGENT = "fri-wier-kjb"
@@ -27,12 +28,18 @@ class Frontier(object):
 
     def __init__(self, db):
         _db = db
+
+    def _canonicalize_url(self, url):
+        # canonicalization transformations that don't work as per lecture 4 slide 16:
+        # - guessed directory
+        # - default filename
+        url = url_normalize(url)
+        url, _ = urldefrag(url)
+        return url
     
     def insert_page(self, url):
-        """
-        Expects canonized and non duplicate URL.
-        """
         with _lock:
+            url = self._canonicalize_url(url)
             domain = urlparse(url).netloc
             if domain not in _hosts: # create site
                 site = Site(domain)
