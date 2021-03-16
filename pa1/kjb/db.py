@@ -26,7 +26,7 @@ class DB(object):
             finally:
                 cur.close()
     
-    def insert_page(self, url):
+    def insert_page(self, url, siteid):
         """
         Insert page with given URL to database.
 
@@ -36,7 +36,7 @@ class DB(object):
         with _lock:
             try:
                 cur = _conn.cursor()
-                cur.execute("INSERT INTO crawldb.page (url) VALUES (%s)", (url,))
+                cur.execute("INSERT INTO crawldb.page (site_id, url) VALUES (%s,%s)", (siteid, url))
             except:
                 _conn.rollback()
             else:
