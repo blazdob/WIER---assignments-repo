@@ -1,45 +1,78 @@
+import logging
+import threading
+import psycopg2
+
+
+logger = logging.getLogger(__name__)
+
+
 class DB(object):
 
     _conn = None
-    _lock = None
+    _lock = threading.Lock()
 
-    def __init__(self, conn, lock):
-        _conn = conn
-        _lock = lock
+    def __init__(self, conn):
+        DB._conn = conn
     
     # TODO: sitemap is empty until strategy for handling it is determined
     def insert_or_update_site(self, domain, robots=""):
-        with _lock:
+        with DB._lock:
             try:
-                cur = _conn.cursor()
+                cur = DB._conn.cursor()
                 # check if site already exists
                 cur.execute("SELECT 1 FROM crawldb.site WHERE domain = %s", (domain,))
                 if cur.fetchone(): # site exists, update it
                     cur.execute("UPDATE crawldb.site SET robots_content = %s WHERE domain = %s RETURNING id", (robots, domain))
                 else: # doesn't exist, insert
-                    cur.execute("INSERT INTO crawldb.site VALUES (%s,%s,%s) RETURNING id", (domain, robots, ""))
-            except:
-                _conn.rollback()
+                    cur.execute("INSERT INTO crawldb.site (domain, robots_content, sitemap_content) VALUES (%s,%s,%s) RETURNING id", (domain, robots, ""))
+            except psycopg2.Error as e:
+                logger.debug(str(e))
+                DB._conn.rollback()
             else:
-                _conn.commit()
+                DB._conn.commit()
                 return cur.fetchone() # return id
             finally:
                 cur.close()
     
-    def insert_page(self, url, siteid):
+    def insert_page(self, url, siteid, timestamp):
         """
         Insert page with given URL to database.
 
         Expects properly processed URL. Other page data is going to be
         updated later when crawler picks it up from frontier.
         """
-        with _lock:
+        with DB._lock:
             try:
-                cur = _conn.cursor()
-                cur.execute("INSERT INTO crawldb.page (site_id, url) VALUES (%s,%s)", (siteid, url))
-            except:
-                _conn.rollback()
+                cur = DB._conn.cursor()
+                cur.execute("INSERT INTO crawldb.page (site_id, url, accessed_time) VALUES (%s,%s,%s)", (siteid, url, timestamp))
+            except psycopg2.Error as e:
+                logger.debug(str(e))
+                DB._conn.rollback()
             else:
-                _conn.commit()
+                DB._conn.commit()
+            finally:
+                cur.close()
+
+    def get_sites(self):
+        with DB._lock:
+            try:
+                cur = DB._conn.cursor()
+                cur.execute("SELECT * FROM crawldb.site")
+            except psycopg2.Error as e:
+                logger.debug(str(e))
+            else:
+                return cur.fetchall()
+            finally:
+                cur.close()
+
+    def get_unprocessed_pages(self):
+        with DB._lock:
+            try:
+                cur = DB._conn.cursor()
+                cur.execute("SELECT url FROM crawldb.page WHERE html_content is NULL AND http_status_code IS NULL ORDER BY accessed_time")
+            except psycopg2.Error as e:
+                logger.debug(str(e))
+            else:
+                return cur.fetchall()
             finally:
                 cur.close()
