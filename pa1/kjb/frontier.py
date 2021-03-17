@@ -13,12 +13,15 @@ import collections
 from urllib.parse import urlparse, urljoin, urldefrag
 from reppy.robots import Robots
 from url_normalize import url_normalize
+from requests.exceptions import RequestException
 
 
 USER_AGENT = "fri-wier-kjb"
 AGENT_RULES = "*"
 HEADERS = {"User-agent":USER_AGENT}
-DELAY = 5
+FETCH_DELAY = 5
+EMPTY_DELAY = 1
+logger = logging.getLogger(__name__)
 
 
 class Frontier(object):
@@ -29,7 +32,7 @@ class Frontier(object):
     _queue = collections.deque()
 
     def __init__(self, db):
-        _db = db
+        Frontier._db = db
 
     def _canonicalize_url(self, url):
         # canonicalization transformations that don't work as per lecture 4 slide 16:
@@ -38,34 +41,56 @@ class Frontier(object):
         url = url_normalize(url)
         url, _ = urldefrag(url)
         return url
+
+    def initialize(self):
+        with Frontier._lock:
+            # fill _hosts
+            rows = Frontier._db.get_sites()
+            for row in rows:
+                site = Site(row[1])
+                site.update_access()
+                site.id = row[0]
+                site.robotstr = row[2]
+                site.sitemap = row[3]
+                site.parse_robots()
+                Frontier._hosts[row[1]] = site
+
+            # fill _queue
+            Frontier._queue.clear()
+            rows = Frontier._db.get_unprocessed_pages()
+            for row in rows:
+                Frontier._queue.appendleft(row[0])
     
     def insert_page(self, url):
-        with _lock:
+        with Frontier._lock:
             url = self._canonicalize_url(url)
             domain = urlparse(url).netloc
-            if domain not in _hosts: # create site
+            if domain not in Frontier._hosts: # create site
                 site = Site(domain)
+                site.fetch_robots()
                 site.parse_robots()
-                site.update_db_site(_db)
-                self._hosts[domain] = site
+                site.update_db_site(Frontier._db)
+                Frontier._hosts[domain] = site
             
-            site = self._hosts[domain]
+            site = Frontier._hosts[domain]
             if not site.agent.allowed(url):
-                logging.debug("frontier: insert_page: given URL is not allowed")
+                logger.debug("given URL is not allowed")
                 return
-            _db.insert_page(url, site.id)
+            Frontier._db.insert_page(url, site.id, datetime.datetime.now())
             try:
-                _queue.index(url)
+                Frontier._queue.index(url)
             except ValueError: # url is not yet in queue
-                _queue.appendleft(url)
+                Frontier._queue.appendleft(url)
             else:
-                logging.debug("frontier: insert_page: URL already in frontier")
+                logger.debug("URL already in frontier")
 
     def get_next_page(self):
-        with _lock:
-            url = _queue.pop()
+        with Frontier._lock:
+            if not len(Frontier._queue):
+                return None, EMPTY_DELAY
+            url = Frontier._queue.pop()
             domain = urlparse(url).netloc
-            site = self._hosts[domain]
+            site = Frontier._hosts[domain]
             diff = datetime.datetime.now() - site.last_access
             delta = datetime.timedelta(days=0, seconds=site.delay)
             if diff > delta:
@@ -79,35 +104,39 @@ class Frontier(object):
 class Site(object):
 
     def __init__(self, domain):
-        self.id = None
         self._domain = domain
-        self._robotstr = ""
-        self._sitemap = ""
         self._parser = None
+        self._robots_url = ""
 
-        self.delay = DELAY
-        self.last_access = None
+        self.id = None
+        self.robotstr = ""
+        self.sitemap = ""
+        self.delay = FETCH_DELAY
+        # not really now, but has to be something
+        self.last_access = datetime.datetime.now()
         self.agent = None
-    
-    def parse_robots(self):
-        url = urljoin(self._domain, "robots.txt")
+
+    def fetch_robots(self):
+        url = urljoin("https://"+self._domain, "robots.txt")
         try:
             response = requests.get(url, headers=HEADERS)
             if response.status_code == 200:
-                self._robotstr = response.text
-        except:
-            logging.debug("frontier: parse_robots: error with retrieving robots.txt")
+                self.robotstr = response.text
+                self._robots_url = url
+        except RequestException as e:
+            logger.debug("error with retrieving robots.txt: {}".format(str(e)))
         finally:
             self.update_access()
 
-        self._parser = Robots.parse(url, self._robotstr)
+    def parse_robots(self):
+        self._parser = Robots.parse(self._robots_url, self.robotstr)
         self.agent = self._parser.agent(AGENT_RULES)
-        self.delay = agent.delay
+        self.delay = self.agent.delay
         if not self.delay:
-            self.delay = DELAY
+            self.delay = FETCH_DELAY
 
     def update_db_site(self, db):
-        self.id = db.insert_or_update_site(self._domain, self._robotstr)
+        self.id = db.insert_or_update_site(self._domain, self.robotstr)
     
     def update_access(self):
         self.last_access = datetime.datetime.now()
