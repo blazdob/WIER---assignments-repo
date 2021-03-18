@@ -2,6 +2,7 @@ import urllib.request
 import time
 import re
 
+from . import config
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from urllib.parse import urljoin
@@ -10,12 +11,25 @@ from bs4 import BeautifulSoup, SoupStrainer
 
 SEED_URLS = ['https://gov.si', 'https://evem.gov.si', 'https://e-uprava.gov.si', 'https://e-prostor.gov.si']
 WEB_PAGE_ADDRESS =SEED_URLS[2]              #trenutno samo za eno
-USER_AGENT = 'fri-wier-KJB'
 WEB_DRIVER_LOCATION = "./chromedriver"
 TIMEOUT = 5
 REGEX = "^(?:https?:\/\/)?(?:[^\.]+\.)?gov\.si(\/.*)?$"
 
 TAGS = ['a', 'link']
+
+headers = {'User-Agent': config.USER_AGENT}
+
+
+def crawl_page(scheduler, url, siteid):
+    # fetch head
+    # if binary data
+    #   handle binary data
+
+    # if html
+    #   text = get_page(url)
+    #   links = get_links(url, text)
+    #   images = get_images(url, text)
+    pass
 
 
 def crawler():
