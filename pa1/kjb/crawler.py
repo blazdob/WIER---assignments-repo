@@ -88,7 +88,7 @@ def get_page(url):
 
     return content.decode('utf8')
 
-def get_links(url):
+def get_links(url, text):
     """Scan the text for http URLs and return a set
     of URLs found, without duplicates"""
 
@@ -96,7 +96,6 @@ def get_links(url):
     links = set()
 
     parser = 'html.parser'
-    text = get_page(url)
     soup = BeautifulSoup(text, parser)
     try:
 
@@ -125,7 +124,8 @@ def crawl(url, maxurls=20):
         # remove a URL at random
         url = urls.pop()
         print("URL: ", url)
-        links = get_links(url)
+        text = get_page(url)
+        links = get_links(url, text)
         urls.update(links)
         # add the url back to the set
         urls.add(url)
@@ -133,14 +133,13 @@ def crawl(url, maxurls=20):
     return urls
 
 
-def get_images(url):
+def get_images(url, text):
     """Scan the text for images and return a set
     of images, without duplicates"""
 
     # look for any http URL in the page
     images = set()
 
-    text = get_page(url)
     soup = BeautifulSoup(text)
     try:
 
