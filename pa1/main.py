@@ -4,8 +4,8 @@ import datetime
 import logging
 import time
 import concurrent.futures
+import kjb.config
 
-from kjb.config import parse_config, DB_HOST, DB_PORT, DB_DB, DB_USER, DB_PASS
 from kjb.db import DB
 from kjb.frontier import Frontier
 
@@ -129,14 +129,14 @@ def test_batch_threading(db):
 
 def main():
     logging.basicConfig(format="thread(%(thread)d): %(levelname)s: %(module)s: %(funcName)s: %(message)s", level=logging.DEBUG)
-    parse_config()
+    kjb.config.parse_config()
 
     conn = psycopg2.connect(
-        host=DB_HOST,
-        port=DB_PORT,
-        database=DB_DB,
-        user=DB_USER,
-        password=DB_PASS
+        host=kjb.config.DB_HOST,
+        port=kjb.config.DB_PORT,
+        database=kjb.config.DB_DB,
+        user=kjb.config.DB_USER,
+        password=kjb.config.DB_PASS
     )
 
     db = DB(conn)
