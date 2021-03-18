@@ -1,12 +1,11 @@
 import urllib.request
 import time
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
-import urllib.request
-from urllib.parse import urljoin
-from bs4 import BeautifulSoup, SoupStrainer
 import re
 
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+from urllib.parse import urljoin
+from bs4 import BeautifulSoup, SoupStrainer
 
 
 SEED_URLS = ['https://gov.si', 'https://evem.gov.si', 'https://e-uprava.gov.si', 'https://e-prostor.gov.si']
