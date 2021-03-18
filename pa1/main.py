@@ -7,7 +7,8 @@ import concurrent.futures
 import kjb.config
 
 from kjb.db import DB
-from kjb.frontier import Frontier, Scheduler
+from kjb.frontier import Frontier
+from kjb.scheduler import Scheduler
 
 
 WORKERS = 4
