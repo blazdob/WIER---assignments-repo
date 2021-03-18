@@ -10,15 +10,14 @@ import time
 import datetime
 import collections
 
+from . import crawler
 from urllib.parse import urlparse, urljoin, urldefrag
 from reppy.robots import Robots
 from url_normalize import url_normalize
 from requests.exceptions import RequestException
 
 
-USER_AGENT = "fri-wier-kjb"
 AGENT_RULES = "*"
-HEADERS = {"User-agent":USER_AGENT}
 FETCH_DELAY = 5
 logger = logging.getLogger(__name__)
 
@@ -94,7 +93,7 @@ class Site(object):
     def fetch_robots(self):
         url = urljoin("https://"+self._domain, "robots.txt")
         try:
-            response = requests.get(url, headers=HEADERS)
+            response = requests.get(url, headers=crawler.headers)
             if response.status_code == 200:
                 self.robotstr = response.text
                 self._robots_url = url
