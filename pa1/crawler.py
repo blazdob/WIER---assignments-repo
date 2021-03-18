@@ -99,17 +99,20 @@ def get_links(url):
     parser = 'html.parser'
     text = get_page(url)
     soup = BeautifulSoup(text, parser)
+    try:
 
-    for link in soup.find_all('a'):
-        if 'href' in link.attrs:
-            newurl = link.attrs['href']
-            # resolve relative URLs
-            if newurl.startswith('/'):
-                newurl = urljoin(url, newurl)
-            # ignore any URL that doesn't now start with http
-            if newurl.startswith('http'):
-                if re.search(REGEX, newurl):
-                    links.add(newurl)
+        for link in soup.find_all('a'):
+            if 'href' in link.attrs:
+                newurl = link.attrs['href']
+                # resolve relative URLs
+                if newurl.startswith('/'):
+                    newurl = urljoin(url, newurl)
+                # ignore any URL that doesn't now start with http
+                if newurl.startswith('http'):
+                    if re.search(REGEX, newurl):
+                        links.add(newurl)
+    except ValueError:
+        print("Error when trying to fetch images")
 
     return links
 
@@ -130,19 +133,29 @@ def crawl(url, maxurls=20):
 
     return urls
 
-def get_images(soup):
-    images = []
 
+def get_images(url):
+    """Scan the text for images and return a set
+    of images, without duplicates"""
+
+    # look for any http URL in the page
+    images = set()
+
+    text = get_page(url)
+    soup = BeautifulSoup(text)
     try:
+
         for link in soup.find_all('img'):
-            images.append(link.get('src'))
+            if 'src' in link.attrs:
+                newimg = link.attrs['src']
+                # resolve relative URLs
+                if newimg.startswith('/'):
+                    newimg = urljoin(url, newimg)
+                    images.add(newimg)
     except ValueError:
         print("Error when trying to fetch images")
 
     return images
-
-
-
 
 
 
