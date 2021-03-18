@@ -34,7 +34,8 @@ class Frontier(object):
             Frontier._queue.clear()
             rows = Frontier._db.get_unprocessed_pages()
             for row in rows:
-                Frontier._queue.appendleft(row[0])
+                page = Page(row[0], row[1], row[2])
+                Frontier._queue.appendleft(page)
     
     def insert_page(self, url):
         with Frontier._lock:
@@ -45,18 +46,23 @@ class Frontier(object):
             if not Frontier._scheduler.site_allowed(siteid, url):
                 logger.debug("given URL is not allowed")
                 return
-            Frontier._db.insert_page(url, siteid, datetime.datetime.now())
-            try:
-                Frontier._queue.index(url)
-            except ValueError: # url is not yet in queue
-                Frontier._queue.appendleft(url)
+            pageid = Frontier._db.insert_page(url, siteid, datetime.datetime.now())
+            if pageid:
+                page = Page(pageid, siteid, url)
+                Frontier._queue.appendleft(page)
             else:
                 logger.debug("URL already in frontier")
 
     def get_next_page(self):
         with Frontier._lock:
             if not len(Frontier._queue):
-                return None, None
-            url = Frontier._queue.pop()
-            domain = urlparse(url).netloc
-            return url, Frontier._scheduler.get_siteid(domain)
+                return None
+            return Frontier._queue.pop()
+
+
+class Page(object):
+
+    def __init__(self, pageid, siteid, url):
+        self.id = pageid
+        self.siteid = siteid
+        self.url = url

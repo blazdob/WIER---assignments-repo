@@ -44,26 +44,26 @@ def pages_exist_thread(frontier, scheduler):
     logger.debug("thread started")
     while True:
         logger.debug("getting page from frontier")
-        url, siteid = frontier.get_next_page()
-        if not url:
-            logger.debug("no url, thread done")
+        page = frontier.get_next_page()
+        if not page:
+            logger.debug("no page, thread done")
             return
-        logger.debug("url from frontier: {}".format(url))
+        logger.debug("url from frontier: {}".format(page.url))
         logger.debug("waiting for site ...")
-        scheduler.wait_site(siteid)
+        scheduler.wait_site(page.siteid)
         logger.debug("waiting done")
 
 
 def oneshot_thread(frontier, scheduler):
     logger.debug("thread started")
     logger.debug("getting page from frontier")
-    url, siteid = frontier.get_next_page()
-    if not url:
-        logger.debug("no url, thread done")
+    page = frontier.get_next_page()
+    if not page:
+        logger.debug("no page, thread done")
         return
-    logger.debug("url from frontier: {}".format(url))
+    logger.debug("url from frontier: {}".format(page.url))
     logger.debug("waiting for site ...")
-    scheduler.wait_site(siteid)
+    scheduler.wait_site(page.siteid)
     logger.debug("waiting done")
     logger.debug("thread done")
 
@@ -105,13 +105,13 @@ def test_get_unprocessed_pages(db):
 def test_frontier(frontier, scheduler):
     bootstrap_frontier(frontier)
 
-    url, siteid = frontier.get_next_page()
-    while url:
-        logger.debug("url from frontier: {}".format(url))
+    page = frontier.get_next_page()
+    while page:
+        logger.debug("url from frontier: {}".format(page.url))
         logger.debug("waiting for site ...")
-        scheduler.wait_site(siteid)
+        scheduler.wait_site(page.siteid)
         logger.debug("waiting done")
-        url, siteid = frontier.get_next_page()
+        page = frontier.get_next_page()
 
     logger.debug("done processing pages")
 

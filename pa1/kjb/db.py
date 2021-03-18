@@ -33,25 +33,6 @@ class DB(object):
                 return cur.fetchone() # return id
             finally:
                 cur.close()
-    
-    def insert_page(self, url, siteid, timestamp):
-        """
-        Insert page with given URL to database.
-
-        Expects properly processed URL. Other page data is going to be
-        updated later when crawler picks it up from frontier.
-        """
-        with DB._lock:
-            try:
-                cur = DB._conn.cursor()
-                cur.execute("INSERT INTO crawldb.page (site_id, url, accessed_time) VALUES (%s,%s,%s)", (siteid, url, timestamp))
-            except psycopg2.Error as e:
-                logger.debug(str(e))
-                DB._conn.rollback()
-            else:
-                DB._conn.commit()
-            finally:
-                cur.close()
 
     def get_sites(self):
         with DB._lock:
@@ -65,11 +46,32 @@ class DB(object):
             finally:
                 cur.close()
 
+    def insert_page(self, url, siteid, timestamp):
+        """
+        Insert page with given URL to database.
+
+        Expects properly processed URL. Other page data is going to be
+        updated later when crawler picks it up from frontier.
+        """
+        with DB._lock:
+            try:
+                cur = DB._conn.cursor()
+                cur.execute("INSERT INTO crawldb.page (site_id, url, accessed_time) VALUES (%s,%s,%s) RETURNING id", (siteid, url, timestamp))
+            except psycopg2.Error as e:
+                logger.debug(str(e))
+                DB._conn.rollback()
+                return None
+            else:
+                DB._conn.commit()
+                return cur.fetchone()
+            finally:
+                cur.close()
+
     def get_unprocessed_pages(self):
         with DB._lock:
             try:
                 cur = DB._conn.cursor()
-                cur.execute("SELECT url FROM crawldb.page WHERE html_content is NULL AND http_status_code IS NULL ORDER BY accessed_time")
+                cur.execute("SELECT id, site_id, url FROM crawldb.page WHERE html_content is NULL AND http_status_code IS NULL ORDER BY accessed_time")
             except psycopg2.Error as e:
                 logger.debug(str(e))
             else:
