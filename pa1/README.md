@@ -1,7 +1,7 @@
 # conda setup
 
 ## create conda environment
-`conda create -n wier`
+`conda create -n wier python=3.8`
 
 ## package installation
 - notebook: for jupyter notebook
