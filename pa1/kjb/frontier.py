@@ -10,15 +10,15 @@ import time
 import datetime
 import collections
 
-from . import crawler
 from urllib.parse import urlparse, urljoin, urldefrag
 from reppy.robots import Robots
 from url_normalize import url_normalize
 from requests.exceptions import RequestException
 
+from . import crawler
+from . import config
 
-AGENT_RULES = "*"
-FETCH_DELAY = 5
+
 logger = logging.getLogger(__name__)
 
 
@@ -84,7 +84,7 @@ class Site(object):
         self.id = None
         self.robotstr = ""
         self.sitemap = ""
-        self.delay = FETCH_DELAY
+        self.delay = config.DEFAULT_DELAY
         # not really now, but has to be something
         self.last_access = datetime.datetime.now()
         self.agent = None
@@ -104,10 +104,10 @@ class Site(object):
 
     def parse_robots(self):
         self._parser = Robots.parse(self._robots_url, self.robotstr)
-        self.agent = self._parser.agent(AGENT_RULES)
+        self.agent = self._parser.agent(config.AGENT_RULES)
         self.delay = self.agent.delay
         if not self.delay:
-            self.delay = FETCH_DELAY
+            self.delay = config.DEFAULT_DELAY
 
     def update_db_site(self, db):
         self.id = db.insert_or_update_site(self._domain, self.robotstr)
