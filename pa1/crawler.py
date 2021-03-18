@@ -3,15 +3,18 @@ import time
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 import urllib.request
+from urllib.parse import urljoin
 from bs4 import BeautifulSoup, SoupStrainer
 import re
 
 
-SEED_URLS = ['http://gov.si', 'http://evem.gov.si', 'http://e-uprava.gov.si', 'http://e-prostor.gov.si']
-WEB_PAGE_ADDRESS =SEED_URLS[0]              #trenutno samo za eno
+
+SEED_URLS = ['https://gov.si', 'https://evem.gov.si', 'https://e-uprava.gov.si', 'https://e-prostor.gov.si']
+WEB_PAGE_ADDRESS =SEED_URLS[2]              #trenutno samo za eno
 USER_AGENT = 'fri-wier-KJB'
 WEB_DRIVER_LOCATION = "./chromedriver"
 TIMEOUT = 5
+REGEX = "^(?:https?:\/\/)?(?:[^\.]+\.)?gov\.si(\/.*)?$"
 
 TAGS = ['a', 'link']
 
@@ -51,36 +54,90 @@ def crawler():
 
     print(f"Retrieved Web content (truncated to first 900 chars): \n\n'\n{html[:900]}\n'\n")
 
-    page_msg = driver.find_element_by_class_name("element-title")
+    #page_msg = driver.find_element_by_class_name("element-title")
 
-    print(f"Web page message: '{page_msg.text}'")
+    #print(f"Web page message: '{page_msg.text}'")
 
-
+    ########################################################################################
     # Fetching links and images
-    parser = 'html.parser'
-    soup = BeautifulSoup(html, parser)
-    print(f"Web page links:", fetchLinks(soup))
-    print(f"Web page images:", fetchImages(soup))
+    #parser = 'html.parser'
+    #soup = BeautifulSoup(html, parser)
+    #print(f"Web page links:", fetchLinks(soup))
+    #print(f"Web page images:", fetchImages(soup))
+
+    #Crawl
+
+    """Starting from this URL, crawl the web until
+       you have collected maxurls URLS, then return them
+       as a set"""
+
+    links = crawl(SEED_URLS[1], 20)
+    print("Collected ", len(links), " links:")
+    for link in links:
+        print(link)
 
     driver.close()
 
 
-def fetchLinks(soup):
-    links = []
-    regex = "(https?:\/\/(.+?\.)?gov\.si(\/[A-Za-z0-9\-\._~:\/\?#\[\]@!$&'\(\)\*\+,;\=]*)?)"
+def get_page(url):
+    """Get the text of the web page at the given URL
+    return a string containing the content"""
 
-    for link in soup.find_all(TAGS):
-        m = re.search(regex, link.get('href'))
-        if m != None:
-            links.append(m.group(0))
+    fd = urllib.request.urlopen(url)
+    content = fd.read()
+    fd.close()
+
+    return content.decode('utf8')
+
+def get_links(url):
+    """Scan the text for http URLs and return a set
+    of URLs found, without duplicates"""
+
+    # look for any http URL in the page
+    links = set()
+
+    parser = 'html.parser'
+    text = get_page(url)
+    soup = BeautifulSoup(text, parser)
+
+    for link in soup.find_all('a'):
+        if 'href' in link.attrs:
+            newurl = link.attrs['href']
+            # resolve relative URLs
+            if newurl.startswith('/'):
+                newurl = urljoin(url, newurl)
+            # ignore any URL that doesn't now start with http
+            if newurl.startswith('http'):
+                if re.search(REGEX, newurl):
+                    links.add(newurl)
 
     return links
 
-def fetchImages(soup):
+def crawl(url, maxurls=20):
+    """Starting from this URL, crawl the web until
+    you have collected maxurls URLS, then return them
+    as a set"""
+
+    urls = set([url])
+    while(len(urls) < maxurls):
+        # remove a URL at random
+        url = urls.pop()
+        print("URL: ", url)
+        links = get_links(url)
+        urls.update(links)
+        # add the url back to the set
+        urls.add(url)
+
+    return urls
+
+def get_images(soup):
     images = []
 
-    for link in soup.find_all('img'):
-        images.append(link.get('src'))
+    try:
+        for link in soup.find_all('img'):
+            images.append(link.get('src'))
+    except ValueError:
+        print("Error when trying to fetch images")
 
     return images
 
