@@ -97,10 +97,10 @@ def crawl_page(frontier, scheduler, page, db):
         # How should such pages be marked?
         # Or should such pages be deleted from database?
         #
-        # For now, leave page type and html empty and insert status code.
+        # For now, leave html empty (type has to be correct) and insert status code.
         # Frontier will not pick up such pages.
         logger.debug("pageid({}) is of no useful format".format(page.id))
-        db.update_page(page.id, "", "", response.status_code, "", access)
+        db.update_page(page.id, "FRONTIER", "", response.status_code "", access)
         return
 
     # handle HTML content
