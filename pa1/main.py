@@ -12,7 +12,6 @@ from kjb.scheduler import Scheduler
 from kjb.crawler import crawl_page
 
 
-WORKERS = 4
 logger = logging.getLogger(__name__)
 
 
@@ -136,6 +135,7 @@ def test_config():
     logger.debug("DRIVER_CHROME: \"{}\"".format(kjb.config.DRIVER_CHROME))
     logger.debug("DEFAULT_DELAY: \"{}\"".format(kjb.config.DEFAULT_DELAY))
     logger.debug("AGENT_RULES: \"{}\"".format(kjb.config.AGENT_RULES))
+    logger.debug("WORKERS: \"{}\"".format(kjb.config.WORKERS))
 
 
 def main():

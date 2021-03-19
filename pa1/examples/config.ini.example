@@ -10,3 +10,4 @@ user_agent = fri-wier-KJB
 driver_chrome =
 default_delay = 5
 agent_rules = *
+workers = 4
