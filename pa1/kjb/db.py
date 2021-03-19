@@ -30,7 +30,7 @@ class DB(object):
                 DB._conn.rollback()
             else:
                 DB._conn.commit()
-                return cur.fetchone() # return id
+                return cur.fetchone()[0] # return id
             finally:
                 cur.close()
 
@@ -60,10 +60,9 @@ class DB(object):
             except psycopg2.Error as e:
                 logger.debug(str(e))
                 DB._conn.rollback()
-                return None
             else:
                 DB._conn.commit()
-                return cur.fetchone()
+                return cur.fetchone()[0]
             finally:
                 cur.close()
 
@@ -95,7 +94,7 @@ class DB(object):
     def insert_page_data(self, pageid, data_type):
         with DB._lock:
             try:
-                cur = conn.cursor()
+                cur = DB._conn.cursor()
                 cur.execute('INSERT INTO crawldb.page_data (page_id, data_type_code) VALUES (%s,%s)', (pageid, data_type))
             except psycopg2.Error as e:
                 logger.debug(str(e))
@@ -108,7 +107,7 @@ class DB(object):
     def insert_image_data(self, pageid, filename, content_type, accessed):
         with DB._lock:
             try:
-                cur = conn.cursor()
+                cur = DB._conn.cursor()
                 cur.execute('INSERT INTO crawldb.image (page_id, filename, content_type, accessed_time) VALUES (%s,%s,%s,%s)', (pageid, filename, content_type, accessed))
             except psycopg2.Error as e:
                 logger.debug(str(e))
@@ -121,7 +120,7 @@ class DB(object):
     def insert_link(self, from_page, to_page):
         with DB._lock:
             try:
-                cur = conn.cursor()
+                cur = DB._conn.cursor()
                 cur.execute('INSERT INTO crawldb.link (from_page, to_page) VALUES (%s,%s)', (from_page, to_page))
             except psycopg2.Error as e:
                 logger.debug(str(e))
@@ -139,6 +138,8 @@ class DB(object):
             except psycopg2.Error as e:
                 logger.debug(str(e))
             else:
-                return cur.fetchall()
+                row = cur.fetchone()
+                if row:
+                    return row[0]
             finally:
                 cur.close()
