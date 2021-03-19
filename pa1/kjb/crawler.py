@@ -1,6 +1,8 @@
 import urllib.request
 import time
 import re
+import logging
+import requests
 
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
@@ -20,22 +22,29 @@ REGEX = "^(?:https?:\/\/)?(?:[^\.]+\.)?gov\.si(\/.*)?$"
 TAGS = ['a', 'link']
 
 headers = {'User-Agent': config.USER_AGENT}
+logger = logging.getLogger(__name__)
 
 
-def crawl_page(scheduler, frontier, page, db):
+def crawl_page(frontier, scheduler, page, db):
+    logger.debug("crawling on pageid({}) at {} on siteid({})".format(page.id, page.url, page.siteid))
+
     # fetch head
+    logger.debug("waiting on siteid({})".format(page.siteid))
     scheduler.wait_site(page.siteid)
+    logger.debug("fetching HEAD on URL {}".format(page.url))
     response = requests.head(page.url, headers=headers)
 
     # instructions say that 4xx and 5xx could be checked several times later,
     # page type "FRONTIER" could be used for that since frontier uses null
     # fields to identify pages in frontier
     if response.status_code >= 400:
+        logger.debug("error on pageid({}), marking \"FRONTIER\" and inserting status code".format(page.id))
         db.update_page(page.id, "FRONTIER", "", response.status_code)
         return
 
     # handle redirect
     if response.status_code >= 300 and "Location" in response.headers:
+        logger.debug("handling redirect on pageid({}) to URL {}".format(page.id, response.headers["Location"]))
         frontier.insert_page(response.headers["Location"])
         return
 
@@ -61,6 +70,7 @@ def crawl_page(scheduler, frontier, page, db):
     else:
         page_type = None
     if page_type == "BINARY":
+        logger.debug("pageid({}) is document of type \"{}\"".format(page.id, data_type))
         db.insert_page_data(page.id, data_type)
         db.update_page(page.id, "BINARY", "", response.status_code)
         return
@@ -72,6 +82,7 @@ def crawl_page(scheduler, frontier, page, db):
         filename = page.url.split("/")[-1]
         # "Date" header parsing explained: https://stackoverflow.com/a/59416334
         accessed = parsedate_to_datetime(response.headers["Date"])
+        logger.debug("pageid({}) is image of type \"{}\" and filename \"{}\"".format(page.id, content_type, filename))
         db.insert_image_data(page.id, filename, content_type, accessed)
         db.update_page(page.id, "BINARY", "", response.status_code)
         return
@@ -83,16 +94,35 @@ def crawl_page(scheduler, frontier, page, db):
         #
         # For now, leave page type and html empty and insert status code.
         # Frontier will not pick up such pages.
+        logger.debug("pageid({}) is of no useful format".format(page.id))
         db.update_page(page.id, "", "", response.status_code)
         return
 
     # handle HTML content
+    logger.debug("pageid({}) is HTML, waiting on siteid({})".format(page.id, page.siteid))
     scheduler.wait_site(page.siteid)
+    logger.debug("fetching pageid({}) on URL {}".format(page.id, page.url))
+
+    # selenium should be used here
     response = requests.get(page.url, headers=headers)
+    # this fail is weird since we managed to fetch headers previously; save for later
+    if response.status_code >= 400:
+        logger.debug("unexpected error on pageid({}), marking \"FRONTIER\" and inserting status code".format(page.id))
+        db.update_page(page.id, "FRONTIER", "", response.status_code)
+        return
     text = response.text
+
+    # duplicate detection
+
+    #logger.debug("HTML on pageid({}) {}".format(page.id, text))
     links = get_links(page.url, text)
     images = get_images(page.url, text)
+
+    logger.debug("pageid({}) is HTML, marking \"HTML\"".format(page.id))
+    db.update_page(page.id, "HTML", text, response.status_code)
+
     for url in links:
+        logger.debug("inserting new URL {}".format(url))
         new_pageid = frontier.insert_page(url)
         # new page can fail to be inserted for two reasons:
         # - it is not allowed (robots.txt filters) or
@@ -101,12 +131,15 @@ def crawl_page(scheduler, frontier, page, db):
         # in second case we still need to add link between pages
         # so we need to get the id of existing page
         if new_pageid:
+            logger.debug("inserting link from pageid({}) to pageid({})".format(page.id, new_pageid))
             db.insert_link(page.id, new_pageid)
         else:
-            row = db.get_page_with_url(url)
-            if row:
-                db.insert_link(page.id, row[0])
+            existing_id = db.get_page_with_url(url)
+            if existing_id:
+                logger.debug("inserting link from pageid({}) to pageid({})".format(page.id, existing_id))
+                db.insert_link(page.id, existing_id)
     for url in images:
+        logger.debug("inserting new image at {}".format(url))
         frontier.insert_page(url)
 
 
@@ -177,8 +210,7 @@ def get_links(url, text):
     # look for any http URL in the page
     links = set()
 
-    parser = 'html.parser'
-    soup = BeautifulSoup(text, parser)
+    soup = BeautifulSoup(text, features="html.parser")
     try:
 
         for link in soup.find_all('a'):
@@ -222,7 +254,7 @@ def get_images(url, text):
     # look for any http URL in the page
     images = set()
 
-    soup = BeautifulSoup(text)
+    soup = BeautifulSoup(text, features="html.parser")
     try:
 
         for link in soup.find_all('img'):
