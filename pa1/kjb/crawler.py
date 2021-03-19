@@ -2,11 +2,13 @@ import urllib.request
 import time
 import re
 
-from . import config
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from urllib.parse import urljoin
 from bs4 import BeautifulSoup, SoupStrainer
+from email.utils import parsedate_to_datetime
+
+from . import config
 
 
 SEED_URLS = ['https://gov.si', 'https://evem.gov.si', 'https://e-uprava.gov.si', 'https://e-prostor.gov.si']
@@ -20,16 +22,92 @@ TAGS = ['a', 'link']
 headers = {'User-Agent': config.USER_AGENT}
 
 
-def crawl_page(scheduler, url, siteid):
+def crawl_page(scheduler, frontier, page, db):
     # fetch head
-    # if binary data
-    #   handle binary data
+    scheduler.wait_site(page.siteid)
+    response = requests.head(page.url, headers=headers)
 
-    # if html
-    #   text = get_page(url)
-    #   links = get_links(url, text)
-    #   images = get_images(url, text)
-    pass
+    # instructions say that 4xx and 5xx could be checked several times later,
+    # page type "FRONTIER" could be used for that since frontier uses null
+    # fields to identify pages in frontier
+    if response.status_code >= 400:
+        db.update_page(page.id, "FRONTIER", "", response.status_code)
+        return
+
+    # handle redirect
+    if response.status_code >= 300 and "Location" in response.headers:
+        frontier.insert_page(response.headers["Location"])
+        return
+
+    # content types reference:
+    # https://www.iana.org/assignments/media-types/media-types.xhtml
+    #
+    # content types just for microsoft documents:
+    # https://stackoverflow.com/a/4212908
+    content_type = response.headers["Content-Type"]
+
+    # handle document types
+    page_type = "BINARY" # avoid repetition for page_type
+    if content_type == "application/pdf":
+        data_type = "PDF"
+    elif content_type == "application/msword":
+        data_type = "DOC"
+    elif content_type == "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+        data_type = "DOCX"
+    elif content_type == "application/vnd.ms-powerpoint":
+        data_type = "PPT"
+    elif content_type == "application/vnd.openxmlformats-officedocument.presentationml.presentation":
+        data_type = "PPTX"
+    else:
+        page_type = None
+    if page_type == "BINARY":
+        db.insert_page_data(page.id, data_type)
+        db.update_page(page.id, "BINARY", "", response.status_code)
+        return
+
+    # handle image types
+    if content_type.startswith("image/"):
+        # if image URLs are not recognized by their extensions, then this
+        # name can be awkward
+        filename = page.url.split("/")[-1]
+        # "Date" header parsing explained: https://stackoverflow.com/a/59416334
+        accessed = parsedate_to_datetime(response.headers["Date"])
+        db.insert_image_data(page.id, filename, content_type, accessed)
+        db.update_page(page.id, "BINARY", "", response.status_code)
+        return
+
+    if "text/html" not in content_type:
+        # What to do with types other than specified documents, images or HTML?
+        # How should such pages be marked?
+        # Or should such pages be deleted from database?
+        #
+        # For now, leave page type and html empty and insert status code.
+        # Frontier will not pick up such pages.
+        db.update_page(page.id, "", "", response.status_code)
+        return
+
+    # handle HTML content
+    scheduler.wait_site(page.siteid)
+    response = requests.get(page.url, headers=headers)
+    text = response.text
+    links = get_links(page.url, text)
+    images = get_images(page.url, text)
+    for url in links:
+        new_pageid = frontier.insert_page(url)
+        # new page can fail to be inserted for two reasons:
+        # - it is not allowed (robots.txt filters) or
+        # - it is already in page table (db constraint)
+        #
+        # in second case we still need to add link between pages
+        # so we need to get the id of existing page
+        if new_pageid:
+            db.insert_link(page.id, new_pageid)
+        else:
+            row = db.get_page_with_url(url)
+            if row:
+                db.insert_link(page.id, row[0])
+    for url in images:
+        frontier.insert_page(url)
 
 
 def crawler():
@@ -91,16 +169,6 @@ def crawler():
 
     driver.close()
 
-
-def get_page(url):
-    """Get the text of the web page at the given URL
-    return a string containing the content"""
-
-    fd = urllib.request.urlopen(url)
-    content = fd.read()
-    fd.close()
-
-    return content.decode('utf8')
 
 def get_links(url, text):
     """Scan the text for http URLs and return a set

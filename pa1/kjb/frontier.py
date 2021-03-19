@@ -45,13 +45,15 @@ class Frontier(object):
             
             if not Frontier._scheduler.site_allowed(siteid, url):
                 logger.debug("given URL is not allowed")
-                return
+                return None
             pageid = Frontier._db.insert_page(url, siteid, datetime.datetime.now())
             if pageid:
                 page = Page(pageid, siteid, url)
                 Frontier._queue.appendleft(page)
+                return pageid
             else:
-                logger.debug("URL already in frontier")
+                logger.debug("URL already in page table")
+                return None
 
     def get_next_page(self):
         with Frontier._lock:
