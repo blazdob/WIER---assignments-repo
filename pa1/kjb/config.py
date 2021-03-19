@@ -22,7 +22,7 @@ def parse_config():
     config.read("config.ini")
     if "database" in config:
         DB_HOST = config["database"].get("host", DB_HOST)
-        DB_PORT = config["database"].get("port", DB_PORT)
+        DB_PORT = int(config["database"].get("port", DB_PORT))
         DB_DB   = config["database"].get("database", DB_DB)
         DB_USER = config["database"].get("user", DB_USER)
         DB_PASS = config["database"].get("password", DB_PASS)
@@ -30,6 +30,6 @@ def parse_config():
     if "crawler" in config:
         USER_AGENT = config["crawler"].get("user_agent", USER_AGENT)
         DRIVER_CHROME = config["crawler"].get("driver_chrome", DRIVER_CHROME)
-        DEFAULT_DELAY = config["crawler"].get("default_delay", DEFAULT_DELAY)
+        DEFAULT_DELAY = int(config["crawler"].get("default_delay", DEFAULT_DELAY))
         AGENT_RULES = config["crawler"].get("agent_rules", AGENT_RULES)
-        WORKERS = config["crawler"].get("workers", WORKERS)
+        WORKERS = int(config["crawler"].get("workers", WORKERS))
