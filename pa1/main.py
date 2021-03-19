@@ -138,6 +138,20 @@ def test_batch_threading(frontier, scheduler, db):
         logger.debug("page batch processed, sleeping 5 seconds ...")
         time.sleep(5)
 
+
+def test_config():
+    logger.debug("DB_HOST: \"{}\"".format(kjb.config.DB_HOST))
+    logger.debug("DB_PORT: \"{}\"".format(kjb.config.DB_PORT))
+    logger.debug("DB_DB: \"{}\"".format(kjb.config.DB_DB))
+    logger.debug("DB_USER: \"{}\"".format(kjb.config.DB_USER))
+    logger.debug("DB_PASS: \"{}\"".format(kjb.config.DB_PASS))
+
+    logger.debug("USER_AGENT: \"{}\"".format(kjb.config.USER_AGENT))
+    logger.debug("DRIVER_CHROME: \"{}\"".format(kjb.config.DRIVER_CHROME))
+    logger.debug("DEFAULT_DELAY: \"{}\"".format(kjb.config.DEFAULT_DELAY))
+    logger.debug("AGENT_RULES: \"{}\"".format(kjb.config.AGENT_RULES))
+
+
 def main():
     logging.basicConfig(format="%(asctime)s: thread(%(thread)d): %(levelname)s: %(module)s: %(funcName)s: %(message)s", level=logging.DEBUG)
     kjb.config.parse_config()

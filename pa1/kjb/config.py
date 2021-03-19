@@ -15,6 +15,7 @@ AGENT_RULES = "*"
 
 def parse_config():
     global DB_HOST, DB_PORT, DB_DB, DB_USER, DB_PASS # needed to modify
+    global USER_AGENT, DRIVER_CHROME, DEFAULT_DELAY, AGENT_RULES
     config = configparser.ConfigParser()
     config.read("config.ini")
     if "database" in config:
