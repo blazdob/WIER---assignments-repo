@@ -27,12 +27,13 @@ def create_db_front_and_sched(conn):
     return db, f, s
 
 
-def bootstrap_frontier(frontier):
-    frontier.insert_page("https://gov.si")
-    frontier.insert_page("https://evem.gov.si")
-    frontier.insert_page("https://e-uprava.gov.si")
-    frontier.insert_page("https://e-prostor.gov.si")
-    logger.debug("done bootstrapping frontier")
+def bootstrap_frontier(frontier, db):
+    if not db.get_sites():
+        frontier.insert_page("https://gov.si")
+        frontier.insert_page("https://evem.gov.si")
+        frontier.insert_page("https://e-uprava.gov.si")
+        frontier.insert_page("https://e-prostor.gov.si")
+        logger.debug("done bootstrapping frontier")
 
 
 def pages_exist_thread(frontier, scheduler, db):
@@ -90,7 +91,7 @@ def test_get_unprocessed_pages(db):
 
 
 def test_single_threaded(frontier, scheduler, db):
-    bootstrap_frontier(frontier)
+    bootstrap_frontier(frontier, db)
 
     page = frontier.get_next_page()
     while page:
@@ -101,7 +102,7 @@ def test_single_threaded(frontier, scheduler, db):
 
 
 def test_pages_exist_threading(frontier, scheduler, db):
-    bootstrap_frontier(frontier)
+    bootstrap_frontier(frontier, db)
 
     while True:
         logger.debug("starting threads")
@@ -113,7 +114,7 @@ def test_pages_exist_threading(frontier, scheduler, db):
 
 
 def test_batch_threading(frontier, scheduler, db):
-    bootstrap_frontier(frontier)
+    bootstrap_frontier(frontier, db)
 
     while True:
         logger.debug("starting threads")
