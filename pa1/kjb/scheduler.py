@@ -1,3 +1,7 @@
+# Possible additions:
+# - when initializing frontier set _last_access of site
+#   from page table if possible
+
 import threading
 import requests
 import logging
@@ -21,27 +25,25 @@ class Site(object):
         self._domain = domain
         self._parser = None
         self._robots_url = ""
+        self._last_access = datetime.datetime.fromtimestamp(0)
 
         self.id = None
+        self.agent = None
         self.robotstr = ""
         self.sitemap = ""
         self.delay = config.DEFAULT_DELAY
-        # not really now, but has to be something
-        self.last_access = datetime.datetime.now()
-        self.agent = None
         self.lock = threading.Lock()
 
     def fetch_robots(self):
         url = urljoin("https://"+self._domain, "robots.txt")
         try:
+            self.wait()
             response = requests.get(url, headers=crawler.headers)
             if response.status_code == 200:
                 self.robotstr = response.text
                 self._robots_url = url
         except RequestException as e:
             logger.debug("error with retrieving robots.txt: {}".format(str(e)))
-        finally:
-            self.update_access()
 
     def parse_robots(self):
         self._parser = Robots.parse(self._robots_url, self.robotstr)
@@ -54,7 +56,18 @@ class Site(object):
         self.id = db.insert_or_update_site(self._domain, self.robotstr)
     
     def update_access(self):
-        self.last_access = datetime.datetime.now()
+        self._last_access = datetime.datetime.now()
+
+    def wait(self):
+        with self.lock:
+            diff = datetime.datetime.now() - self._last_access
+            delta = datetime.timedelta(days=0, seconds=self.delay)
+            if diff > delta:
+                delay = 0
+            else:
+                delay = (delta - diff).total_seconds()
+            time.sleep(delay)
+            self.update_access()
 
 
 class Scheduler(object):
@@ -74,7 +87,6 @@ class Scheduler(object):
             rows = Scheduler._db.get_sites()
             for row in rows:
                 site = Site(row[1])
-                site.update_access()
                 site.id = row[0]
                 site.robotstr = row[2]
                 site.sitemap = row[3]
@@ -100,13 +112,4 @@ class Scheduler(object):
         return Scheduler._sites_by_id[siteid].agent.allowed(url)
 
     def wait_site(self, siteid):
-        site = Scheduler._sites_by_id[siteid]
-        with site.lock:
-            diff = datetime.datetime.now() - site.last_access
-            delta = datetime.timedelta(days=0, seconds=site.delay)
-            if diff > delta:
-                delay = 0
-            else:
-                delay = (delta - diff).seconds
-            time.sleep(delay)
-            site.update_access()
+        Scheduler._sites_by_id[siteid].wait()
