@@ -39,29 +39,19 @@ def bootstrap_frontier(frontier):
 def pages_exist_thread(frontier, scheduler, db):
     logger.debug("thread started")
     while True:
-        #logger.debug("getting page from frontier")
         page = frontier.get_next_page()
         if not page:
             logger.debug("no page, thread done")
             return
-        #logger.debug("url from frontier: {}".format(page.url))
-        #logger.debug("waiting for site ...")
-        #scheduler.wait_site(page.siteid)
-        #logger.debug("waiting done")
         crawl_page(frontier, scheduler, page, db)
 
 
 def oneshot_thread(frontier, scheduler, db):
     logger.debug("thread started")
-    #logger.debug("getting page from frontier")
     page = frontier.get_next_page()
     if not page:
         logger.debug("no page, thread done")
         return
-    #logger.debug("url from frontier: {}".format(page.url))
-    #logger.debug("waiting for site ...")
-    #scheduler.wait_site(page.siteid)
-    #logger.debug("waiting done")
     crawl_page(frontier, scheduler, page, db)
     logger.debug("thread done")
 
@@ -105,10 +95,6 @@ def test_single_threaded(frontier, scheduler, db):
 
     page = frontier.get_next_page()
     while page:
-        #logger.debug("url from frontier: {}".format(page.url))
-        #logger.debug("waiting for site ...")
-        #scheduler.wait_site(page.siteid)
-        #logger.debug("waiting done")
         crawl_page(frontier, scheduler, page, db)
         page = frontier.get_next_page()
 
