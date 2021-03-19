@@ -105,8 +105,8 @@ def test_pages_exist_threading(frontier, scheduler, db):
 
     while True:
         logger.debug("starting threads")
-        with concurrent.futures.ThreadPoolExecutor(max_workers=WORKERS) as executor:
-            for _ in range(WORKERS):
+        with concurrent.futures.ThreadPoolExecutor(max_workers=kjb.config.WORKERS) as executor:
+            for _ in range(kjb.config.WORKERS):
                 executor.submit(pages_exist_thread, frontier, scheduler, db)
         logger.debug("all pages have been processed, sleeping for 5 seconds ...")
         time.sleep(5)
@@ -117,8 +117,8 @@ def test_batch_threading(frontier, scheduler, db):
 
     while True:
         logger.debug("starting threads")
-        with concurrent.futures.ThreadPoolExecutor(max_workers=WORKERS) as executor:
-            for _ in range(WORKERS):
+        with concurrent.futures.ThreadPoolExecutor(max_workers=kjb.config.WORKERS) as executor:
+            for _ in range(kjb.config.WORKERS):
                 executor.submit(oneshot_thread, frontier, scheduler, db)
         logger.debug("page batch processed, sleeping 5 seconds ...")
         time.sleep(5)
