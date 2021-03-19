@@ -78,11 +78,11 @@ class DB(object):
             finally:
                 cur.close()
 
-    def update_page(self, id, type, html, http_status):
+    def update_page(self, id, type, html, http_status, hash, timestamp):
         with DB._lock:
             try:
                 cur = DB._conn.cursor()
-                cur.execute("UPDATE crawldb.page SET page_type_code = %s, html_content = %s, http_status_code = %s WHERE id = %s", (type, html, http_status, id))
+                cur.execute("UPDATE crawldb.page SET page_type_code = %s, html_content = %s, http_status_code = %s, html_hash = %s, accessed_time = %s WHERE id = %s", (type, html, http_status, hash, timestamp, id))
             except psycopg2.Error as e:
                 logger.debug(str(e))
                 DB._conn.rollback()
@@ -137,6 +137,21 @@ class DB(object):
                 cur.execute("SELECT id FROM crawldb.page WHERE url = %s", (url,))
             except psycopg2.Error as e:
                 logger.debug(str(e))
+            else:
+                row = cur.fetchone()
+                if row:
+                    return row[0]
+            finally:
+                cur.close()
+
+
+    def hash_duplicate_check(self, hash):
+        with DB._lock:
+            try:
+                cur = DB._conn.cursor()
+                cur.execute("SELECT id FROM crawldb.page WHERE hash_content=%s", (hash,))
+            except Exception as e:
+                logger.debug(str(e)
             else:
                 row = cur.fetchone()
                 if row:
