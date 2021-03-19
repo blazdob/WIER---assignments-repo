@@ -11,11 +11,13 @@ USER_AGENT = "fri-wier-KJB"
 DRIVER_CHROME = "" # if empty, default is used
 DEFAULT_DELAY = 5
 AGENT_RULES = "*"
+WORKERS = 4
 
 
 def parse_config():
     global DB_HOST, DB_PORT, DB_DB, DB_USER, DB_PASS # needed to modify
     global USER_AGENT, DRIVER_CHROME, DEFAULT_DELAY, AGENT_RULES
+    global WORKERS
     config = configparser.ConfigParser()
     config.read("config.ini")
     if "database" in config:
@@ -30,3 +32,4 @@ def parse_config():
         DRIVER_CHROME = config["crawler"].get("driver_chrome", DRIVER_CHROME)
         DEFAULT_DELAY = config["crawler"].get("default_delay", DEFAULT_DELAY)
         AGENT_RULES = config["crawler"].get("agent_rules", AGENT_RULES)
+        WORKERS = config["crawler"].get("workers", WORKERS)
