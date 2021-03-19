@@ -1,0 +1,12 @@
+[database]
+host = localhost
+port = 5432
+db   = postgres
+user = user
+password = password
+
+[crawler]
+user_agent = fri-wier-KJB
+driver_chrome =
+default_delay = 5
+agent_rules = *
