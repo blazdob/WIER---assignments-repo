@@ -9,6 +9,7 @@ import kjb.config
 from kjb.db import DB
 from kjb.frontier import Frontier
 from kjb.scheduler import Scheduler
+from kjb.crawler import crawl_page
 
 
 WORKERS = 4
@@ -40,31 +41,33 @@ def bootstrap_frontier(frontier):
     logger.debug("done bootstrapping frontier")
 
 
-def pages_exist_thread(frontier, scheduler):
+def pages_exist_thread(frontier, scheduler, db):
     logger.debug("thread started")
     while True:
-        logger.debug("getting page from frontier")
+        #logger.debug("getting page from frontier")
         page = frontier.get_next_page()
         if not page:
             logger.debug("no page, thread done")
             return
-        logger.debug("url from frontier: {}".format(page.url))
-        logger.debug("waiting for site ...")
-        scheduler.wait_site(page.siteid)
-        logger.debug("waiting done")
+        #logger.debug("url from frontier: {}".format(page.url))
+        #logger.debug("waiting for site ...")
+        #scheduler.wait_site(page.siteid)
+        #logger.debug("waiting done")
+        crawl_page(frontier, scheduler, page, db)
 
 
-def oneshot_thread(frontier, scheduler):
+def oneshot_thread(frontier, scheduler, db):
     logger.debug("thread started")
-    logger.debug("getting page from frontier")
+    #logger.debug("getting page from frontier")
     page = frontier.get_next_page()
     if not page:
         logger.debug("no page, thread done")
         return
-    logger.debug("url from frontier: {}".format(page.url))
-    logger.debug("waiting for site ...")
-    scheduler.wait_site(page.siteid)
-    logger.debug("waiting done")
+    #logger.debug("url from frontier: {}".format(page.url))
+    #logger.debug("waiting for site ...")
+    #scheduler.wait_site(page.siteid)
+    #logger.debug("waiting done")
+    crawl_page(frontier, scheduler, page, db)
     logger.debug("thread done")
 
 
@@ -102,40 +105,41 @@ def test_get_unprocessed_pages(db):
     print(type(rows[0][0]))
 
 
-def test_frontier(frontier, scheduler):
+def test_single_threaded(frontier, scheduler, db):
     bootstrap_frontier(frontier)
 
     page = frontier.get_next_page()
     while page:
-        logger.debug("url from frontier: {}".format(page.url))
-        logger.debug("waiting for site ...")
-        scheduler.wait_site(page.siteid)
-        logger.debug("waiting done")
+        #logger.debug("url from frontier: {}".format(page.url))
+        #logger.debug("waiting for site ...")
+        #scheduler.wait_site(page.siteid)
+        #logger.debug("waiting done")
+        crawl_page(frontier, scheduler, page, db)
         page = frontier.get_next_page()
 
     logger.debug("done processing pages")
 
 
-def test_frontier_threading(frontier, scheduler):
+def test_pages_exist_threading(frontier, scheduler, db):
     bootstrap_frontier(frontier)
 
     while True:
         logger.debug("starting threads")
         with concurrent.futures.ThreadPoolExecutor(max_workers=WORKERS) as executor:
             for _ in range(WORKERS):
-                executor.submit(pages_exist_thread, frontier, scheduler)
+                executor.submit(pages_exist_thread, frontier, scheduler, db)
         logger.debug("all pages have been processed, sleeping for 5 seconds ...")
         time.sleep(5)
 
 
-def test_batch_threading(frontier, scheduler):
+def test_batch_threading(frontier, scheduler, db):
     bootstrap_frontier(frontier)
 
     while True:
         logger.debug("starting threads")
         with concurrent.futures.ThreadPoolExecutor(max_workers=WORKERS) as executor:
             for _ in range(WORKERS):
-                executor.submit(oneshot_thread, frontier, scheduler)
+                executor.submit(oneshot_thread, frontier, scheduler, db)
         logger.debug("page batch processed, sleeping 5 seconds ...")
         time.sleep(5)
 
@@ -153,9 +157,9 @@ def main():
 
     db, frontier, scheduler = create_db_front_and_sched(conn)
 
-    #test_frontier(frontier, scheduler)
-    #test_frontier_threading(frontier, scheduler)
-    test_batch_threading(frontier, scheduler)
+    #test_single_threaded(frontier, scheduler, db)
+    #test_pages_exist_threading(frontier, scheduler, db)
+    test_batch_threading(frontier, scheduler, db)
 
     conn.close()
 
