@@ -30,11 +30,6 @@ def create_db_front_and_sched(conn):
 
 def bootstrap_frontier(frontier):
     frontier.insert_page("https://gov.si")
-    frontier.insert_page("https://www.gov.si/podrocja/")
-    frontier.insert_page("https://www.gov.si/drzavni-organi/")
-    frontier.insert_page("https://www.gov.si/zbirke/")
-    frontier.insert_page("https://www.gov.si/dogodki/")
-    frontier.insert_page("https://www.gov.si/novice/")
     frontier.insert_page("https://evem.gov.si")
     frontier.insert_page("https://e-uprava.gov.si")
     frontier.insert_page("https://e-prostor.gov.si")
