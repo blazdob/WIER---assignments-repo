@@ -31,8 +31,8 @@ def crawl_page(frontier, scheduler, page, db):
     # fetch head
     logger.debug("waiting on siteid({})".format(page.siteid))
     scheduler.wait_site(page.siteid)
-    logger.debug("fetching HEAD on URL {}".format(page.url))
     response = requests.head(page.url, headers=headers)
+    logger.debug("fetched HEAD from pageid({}) at URL {}".format(page.id, page.url))
 
     # instructions say that 4xx and 5xx could be checked several times later,
     # page type "FRONTIER" could be used for that since frontier uses null
@@ -103,10 +103,9 @@ def crawl_page(frontier, scheduler, page, db):
     # handle HTML content
     logger.debug("pageid({}) is HTML, waiting on siteid({})".format(page.id, page.siteid))
     scheduler.wait_site(page.siteid)
-    logger.debug("fetching pageid({}) on URL {}".format(page.id, page.url))
-
     # selenium should be used here
     response = requests.get(page.url, headers=headers)
+    logger.debug("fetched HTML from pageid({}) at URL {}".format(page.id, page.url))
     # this fail is weird since we managed to fetch headers previously; save for later
     if response.status_code >= 400:
         logger.debug("unexpected error on pageid({}), marking \"FRONTIER\" and inserting status code".format(page.id))
