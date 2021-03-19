@@ -46,8 +46,10 @@ def crawl_page(frontier, scheduler, page, db):
         return
 
     # handle redirect
+    # redirect pages are marked "HTML" but have no html content and one of redirect status codes
     if response.status_code >= 300 and "Location" in response.headers:
         logger.debug("handling redirect on pageid({}) to URL {}".format(page.id, response.headers["Location"]))
+        db.update_page(page.id, "HTML", "", response.status_code)
         frontier.insert_page(response.headers["Location"])
         return
 
