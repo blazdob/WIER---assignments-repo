@@ -78,3 +78,67 @@ class DB(object):
                 return cur.fetchall()
             finally:
                 cur.close()
+
+    def update_page(self, id, type, html, http_status):
+        with DB._lock:
+            try:
+                cur = DB._conn.cursor()
+                cur.execute("UPDATE crawldb.page SET page_type_code = %s, html_content = %s, http_status_code = %s WHERE id = %s", (type, html, http_status, id))
+            except psycopg2.Error as e:
+                logger.debug(str(e))
+                DB._conn.rollback()
+            else:
+                DB._conn.commit()
+            finally:
+                cur.close()
+
+    def insert_page_data(self, pageid, data_type):
+        with DB._lock:
+            try:
+                cur = conn.cursor()
+                cur.execute('INSERT INTO crawldb.page_data (page_id, data_type_code) VALUES (%s,%s)', (pageid, data_type))
+            except psycopg2.Error as e:
+                logger.debug(str(e))
+                DB._conn.rollback()
+            else:
+                DB._conn.commit()
+            finally:
+                cur.close()
+
+    def insert_image_data(self, pageid, filename, content_type, accessed):
+        with DB._lock:
+            try:
+                cur = conn.cursor()
+                cur.execute('INSERT INTO crawldb.image (page_id, filename, content_type, accessed_time) VALUES (%s,%s,%s,%s)', (pageid, filename, content_type, accessed))
+            except psycopg2.Error as e:
+                logger.debug(str(e))
+                DB._conn.rollback()
+            else:
+                DB._conn.commit()
+            finally:
+                cur.close()
+
+    def insert_link(self, from_page, to_page):
+        with DB._lock:
+            try:
+                cur = conn.cursor()
+                cur.execute('INSERT INTO crawldb.link (from_page, to_page) VALUES (%s,%s)', (from_page, to_page))
+            except psycopg2.Error as e:
+                logger.debug(str(e))
+                DB._conn.rollback()
+            else:
+                DB._conn.commit()
+            finally:
+                cur.close()
+
+    def get_page_with_url(self, url):
+        with DB._lock:
+            try:
+                cur = DB._conn.cursor()
+                cur.execute("SELECT id FROM crawldb.page WHERE url = %s", (url,))
+            except psycopg2.Error as e:
+                logger.debug(str(e))
+            else:
+                return cur.fetchall()
+            finally:
+                cur.close()
