@@ -121,8 +121,8 @@ def test_batch_threading(frontier, scheduler, db):
         with concurrent.futures.ThreadPoolExecutor(max_workers=kjb.config.WORKERS) as executor:
             for _ in range(kjb.config.WORKERS):
                 executor.submit(oneshot_thread, frontier, scheduler, db)
-        logger.debug("page batch processed, sleeping 5 seconds ...")
-        time.sleep(5)
+        logger.debug("page batch processed, sleeping 1 seconds ...")
+        time.sleep(1)
 
 
 def test_config():
