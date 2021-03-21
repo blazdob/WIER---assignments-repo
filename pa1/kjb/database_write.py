@@ -1,8 +1,4 @@
 
-def write_url_to_db(conn, links, pg_index):
-    return 0
-
-
 def write_site_to_db(conn, domain, robots_content, sitemap_content):
     cur = conn.cursor()
     try:
@@ -17,7 +13,7 @@ def write_site_to_db(conn, domain, robots_content, sitemap_content):
 def write_pg_data_to_db(conn, pg_id, data_type_code, data):
     cur = conn.cursor()
 
-    sql = 'INSERT INTO crawldb.pg_data (page_id, data_type_code,data) ' \
+    sql = 'INSERT INTO crawldb.pg_data (page_id, data_type_code, data) ' \
           'VALUES (%s,%s,%s)'
     try:
         cur.execute(sql, (pg_id, data_type_code, data))
