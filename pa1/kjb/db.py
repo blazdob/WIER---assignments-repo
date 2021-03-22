@@ -26,7 +26,7 @@ class DB(object):
                 else: # doesn't exist, insert
                     cur.execute("INSERT INTO crawldb.site (domain, robots_content, sitemap_content) VALUES (%s,%s,%s) RETURNING id", (domain, robots, ""))
             except psycopg2.Error as e:
-                logger.debug(str(e))
+                logger.error(str(e))
                 DB._conn.rollback()
             else:
                 DB._conn.commit()
@@ -40,7 +40,7 @@ class DB(object):
                 cur = DB._conn.cursor()
                 cur.execute("SELECT * FROM crawldb.site")
             except psycopg2.Error as e:
-                logger.debug(str(e))
+                logger.error(str(e))
             else:
                 return cur.fetchall()
             finally:
@@ -72,7 +72,7 @@ class DB(object):
                 cur = DB._conn.cursor()
                 cur.execute("SELECT id, site_id, url FROM crawldb.page WHERE html_content is NULL AND http_status_code IS NULL ORDER BY accessed_time")
             except psycopg2.Error as e:
-                logger.debug(str(e))
+                logger.error(str(e))
             else:
                 return cur.fetchall()
             finally:
@@ -97,7 +97,7 @@ class DB(object):
                 cur = DB._conn.cursor()
                 cur.execute('INSERT INTO crawldb.page_data (page_id, data_type_code) VALUES (%s,%s)', (pageid, data_type))
             except psycopg2.Error as e:
-                logger.debug(str(e))
+                logger.error(str(e))
                 DB._conn.rollback()
             else:
                 DB._conn.commit()
@@ -123,7 +123,7 @@ class DB(object):
                 cur = DB._conn.cursor()
                 cur.execute('INSERT INTO crawldb.link (from_page, to_page) VALUES (%s,%s)', (from_page, to_page))
             except psycopg2.Error as e:
-                logger.debug(str(e))
+                logger.error(str(e))
                 DB._conn.rollback()
             else:
                 DB._conn.commit()
@@ -136,7 +136,7 @@ class DB(object):
                 cur = DB._conn.cursor()
                 cur.execute("SELECT id FROM crawldb.page WHERE url = %s", (url,))
             except psycopg2.Error as e:
-                logger.debug(str(e))
+                logger.error(str(e))
             else:
                 row = cur.fetchone()
                 if row:
@@ -151,7 +151,7 @@ class DB(object):
                 cur = DB._conn.cursor()
                 cur.execute("SELECT id FROM crawldb.page WHERE html_hash=%s", (hash,))
             except Exception as e:
-                logger.debug(str(e))
+                logger.error(str(e))
             else:
                 row = cur.fetchone()
                 if row:

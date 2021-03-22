@@ -164,7 +164,7 @@ def create_content_hash(html_content):
         m.update(html_content.encode('utf-8'))
         return m.hexdigest()
     except Exception as e:
-        logger.debug(str(e))
+        logger.error(str(e))
         return None
 
 
