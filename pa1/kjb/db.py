@@ -149,9 +149,9 @@ class DB(object):
         with DB._lock:
             try:
                 cur = DB._conn.cursor()
-                cur.execute("SELECT id FROM crawldb.page WHERE hash_content=%s", (hash,))
+                cur.execute("SELECT id FROM crawldb.page WHERE html_hash=%s", (hash,))
             except Exception as e:
-                logger.debug(str(e)
+                logger.debug(str(e))
             else:
                 row = cur.fetchone()
                 if row:
