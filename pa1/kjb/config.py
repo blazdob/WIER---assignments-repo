@@ -4,7 +4,7 @@ import configparser
 DB_HOST = "localhost"
 DB_PORT = 5432
 DB_DB   = "postgres"
-DB_USER = "user"
+DB_USER = "postgres"
 DB_PASS = "password"
 
 USER_AGENT = "fri-wier-KJB"

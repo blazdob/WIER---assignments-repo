@@ -21,7 +21,6 @@ def create_db_front_and_sched(conn):
     s = Scheduler(db)
     s.initialize()
     logger.debug("scheduler initialized")
-    f = Frontier(db, s)
     f.initialize()
     logger.debug("frontier initialized")
     return db, f, s
