@@ -21,7 +21,7 @@ def create_db_front_and_sched(conn):
     s = Scheduler(db)
     s.initialize()
     logger.debug("scheduler initialized")
-    f.initialize()
+    f = Frontier(db, s)
     logger.debug("frontier initialized")
     return db, f, s
 
@@ -158,9 +158,9 @@ def main():
 
     db, frontier, scheduler = create_db_front_and_sched(conn)
 
-    #test_single_threaded(frontier, scheduler, db)
+    test_single_threaded(frontier, scheduler, db)
     #test_pages_exist_threading(frontier, scheduler, db)
-    test_batch_threading(frontier, scheduler, db)
+    #test_batch_threading(frontier, scheduler, db)
 
     conn.close()
 
