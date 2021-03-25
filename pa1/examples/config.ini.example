@@ -10,4 +10,7 @@ user_agent = fri-wier-KJB
 driver_chrome =
 default_delay = 5
 agent_rules = *
+
+[threading]
 workers = 4
+batch_delay = 2

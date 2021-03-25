@@ -127,8 +127,8 @@ def test_batch_threading(frontier, scheduler, db):
                     executor.submit(oneshot_thread, frontier, scheduler, db)
         except KeyboardInterrupt:
             return
-        logger.debug("page batch processed, sleeping 1 seconds ...")
-        time.sleep(1)
+        logger.debug("page batch processed, sleeping {} seconds ...".format(kjb.config.BATCH_DELAY))
+        time.sleep(kjb.config.BATCH_DELAY)
 
 
 def test_config():
@@ -143,11 +143,14 @@ def test_config():
     logger.debug("DEFAULT_DELAY: \"{}\"".format(kjb.config.DEFAULT_DELAY))
     logger.debug("AGENT_RULES: \"{}\"".format(kjb.config.AGENT_RULES))
     logger.debug("WORKERS: \"{}\"".format(kjb.config.WORKERS))
+    logger.debug("BATCH_DELAY: \"{}\"".format(kjb.config.BATCH_DELAY))
 
 
 def main():
     logging.basicConfig(format="%(asctime)s: thread(%(thread)d): %(levelname)s: %(module)s: %(funcName)s: %(message)s", level=logging.DEBUG)
     kjb.config.parse_config()
+
+    #test_config()
 
     conn = psycopg2.connect(
         host=kjb.config.DB_HOST,
