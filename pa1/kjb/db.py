@@ -56,7 +56,7 @@ class DB(object):
         with DB._lock:
             try:
                 cur = DB._conn.cursor()
-                cur.execute("INSERT INTO crawldb.page (site_id, url, accessed_time) VALUES (%s,%s,%s) RETURNING id", (siteid, url, timestamp))
+                cur.execute("INSERT INTO crawldb.page (site_id, page_type_code, url, accessed_time) VALUES (%s,%s,%s,%s) RETURNING id", (siteid, "FRONTIER", url, timestamp))
             except psycopg2.Error as e:
                 logger.debug(str(e))
                 DB._conn.rollback()
@@ -70,7 +70,7 @@ class DB(object):
         with DB._lock:
             try:
                 cur = DB._conn.cursor()
-                cur.execute("SELECT id, site_id, url FROM crawldb.page WHERE page_type_code IS NULL AND html_content IS NULL AND http_status_code IS NULL ORDER BY accessed_time")
+                cur.execute("SELECT id, site_id, url FROM crawldb.page WHERE page_type_code = 'FRONTIER' ORDER BY accessed_time")
             except psycopg2.Error as e:
                 logger.error(str(e))
             else:
@@ -149,7 +149,7 @@ class DB(object):
         with DB._lock:
             try:
                 cur = DB._conn.cursor()
-                cur.execute("SELECT id FROM crawldb.page WHERE html_hash=%s", (hash,))
+                cur.execute("SELECT id FROM crawldb.page WHERE html_hash = %s", (hash,))
             except Exception as e:
                 logger.error(str(e))
             else:

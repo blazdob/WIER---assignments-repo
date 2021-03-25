@@ -41,6 +41,9 @@ class Frontier(object):
         with Frontier._lock:
             url = self._canonicalize_url(url)
             domain = urlparse(url).netloc
+            if not domain:
+                logger.debug("could not parse domain")
+                return None
             siteid = Frontier._scheduler.get_siteid(domain)
             
             if not Frontier._scheduler.site_allowed(siteid, url):

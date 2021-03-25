@@ -37,20 +37,19 @@ def crawl_page(frontier, scheduler, page, db):
     access = datetime.datetime.now()
     logger.debug("sent HEAD request to pageid({}) at URL {}".format(page.id, page.url))
 
-    # instructions say that 4xx and 5xx could be checked several times later,
-    # page type "FRONTIER" could be used for that since frontier uses null
-    # fields to identify pages in frontier
+    # mark error
     if response.status_code >= 400:
-        logger.debug("error on pageid({}), marking \"FRONTIER\" and inserting status code".format(page.id))
-        db.update_page(page.id, "FRONTIER", "", response.status_code, "", access)
+        logger.debug("error on HEAD request on pageid({})".format(page.id))
+        db.update_page(page.id, "ERROR", None, response.status_code, None, access)
         return
 
-    # handle redirect
-    # redirect pages are marked "FRONTIER"
-    if response.status_code >= 300 and "Location" in response.headers:
-        logger.debug("handling redirect on pageid({}) to URL {}".format(page.id, response.headers["Location"]))
-        db.update_page(page.id, "FRONTIER", "", response.status_code, "", access)
-        frontier.insert_page(response.headers["Location"])
+    # handle and mark redirect
+    if response.status_code >= 300:
+        logger.debug("redirect on pageid({})".format(page.id))
+        db.update_page(page.id, "REDIRECT", None, response.status_code, None, access)
+        targetid = frontier.insert_page(response.headers.get("Location", ""))
+        if targetid:
+            db.insert_link(page.id, targetid)
         return
 
     # content types reference:
@@ -77,7 +76,7 @@ def crawl_page(frontier, scheduler, page, db):
     if page_type == "BINARY":
         logger.debug("pageid({}) is document of type \"{}\"".format(page.id, data_type))
         db.insert_page_data(page.id, data_type)
-        db.update_page(page.id, "BINARY", "", response.status_code, "", access)
+        db.update_page(page.id, "BINARY", None, response.status_code, None, access)
         return
 
     # handle image types
@@ -89,18 +88,13 @@ def crawl_page(frontier, scheduler, page, db):
         accessed = parsedate_to_datetime(response.headers["Date"])
         logger.debug("pageid({}) is image of type \"{}\" and filename \"{}\"".format(page.id, content_type, filename))
         db.insert_image_data(page.id, filename, content_type, accessed)
-        db.update_page(page.id, "BINARY", "", response.status_code, "", access)
+        db.update_page(page.id, "BINARY", None, response.status_code, None, access)
         return
 
+    # mark such pages as "OTHER"
     if "text/html" not in content_type:
-        # What to do with types other than specified documents, images or HTML?
-        # How should such pages be marked?
-        # Or should such pages be deleted from database?
-        #
-        # For now, leave html empty (type has to be correct) and insert status code.
-        # Frontier will not pick up such pages.
         logger.debug("pageid({}) is of no useful format".format(page.id))
-        db.update_page(page.id, "FRONTIER", "", response.status_code, "", access)
+        db.update_page(page.id, "OTHER", None, response.status_code, None, access)
         return
 
     # handle HTML content
@@ -111,10 +105,10 @@ def crawl_page(frontier, scheduler, page, db):
     access = datetime.datetime.now()
     logger.debug("sent GET request to pageid({}) at URL {}".format(page.id, page.url))
 
-    # this fail is weird since we managed to fetch headers previously; save for later
+    # this fail is weird since we managed to fetch headers previously; mark "ERROR"
     if response.status_code >= 400:
-        logger.debug("unexpected error on pageid({}), marking \"FRONTIER\" and inserting status code".format(page.id))
-        db.update_page(page.id, "FRONTIER", "", response.status_code, "", access)
+        logger.debug("error on GET request on pageid({})".format(page.id))
+        db.update_page(page.id, "ERROR", None, response.status_code, None, access)
         return
     text = response.text
 
@@ -123,7 +117,7 @@ def crawl_page(frontier, scheduler, page, db):
         dupid = db.hash_duplicate_check(hash)
         if dupid:
             logger.debug("pageid({}) is duplicate of pageid({})".format(page.id, dupid))
-            db.update_page(page.id, "DUPLICATE", "", response.status_code, "", access)
+            db.update_page(page.id, "DUPLICATE", None, response.status_code, None, access)
             db.insert_link(page.id, dupid)
             return
     else:
@@ -133,7 +127,7 @@ def crawl_page(frontier, scheduler, page, db):
     links = get_links(page.url, text)
     images = get_images(page.url, text)
 
-    logger.debug("pageid({}) is HTML, marking \"HTML\"".format(page.id))
+    logger.debug("pageid({}) is HTML".format(page.id))
     db.update_page(page.id, "HTML", text, response.status_code, hash, access)
 
     for url in links:
