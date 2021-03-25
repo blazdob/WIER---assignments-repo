@@ -70,7 +70,7 @@ class DB(object):
         with DB._lock:
             try:
                 cur = DB._conn.cursor()
-                cur.execute("SELECT id, site_id, url FROM crawldb.page WHERE html_content is NULL AND http_status_code IS NULL ORDER BY accessed_time")
+                cur.execute("SELECT id, site_id, url FROM crawldb.page WHERE page_type_code IS NULL AND html_content IS NULL AND http_status_code IS NULL ORDER BY accessed_time")
             except psycopg2.Error as e:
                 logger.error(str(e))
             else:
