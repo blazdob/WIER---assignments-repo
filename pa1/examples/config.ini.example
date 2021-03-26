@@ -7,9 +7,10 @@ password = password
 
 [crawler]
 user_agent = fri-wier-KJB
-driver_chrome =
+driver_location =
 default_delay = 5
 agent_rules = *
+selenium_delay = 5
 
 [threading]
 workers = 4

@@ -8,18 +8,21 @@ DB_USER = "user"
 DB_PASS = "password"
 
 USER_AGENT = "fri-wier-KJB"
-DRIVER_CHROME = "" # if empty, default is used
+DRIVER_LOCATION = "" # if empty, default is used
 DEFAULT_DELAY = 5
 AGENT_RULES = "*"
+SELENIUM_DELAY = 5
 
 WORKERS = 4
 BATCH_DELAY = 2
 
 
 def parse_config():
-    global DB_HOST, DB_PORT, DB_DB, DB_USER, DB_PASS # needed to modify
-    global USER_AGENT, DRIVER_CHROME, DEFAULT_DELAY, AGENT_RULES
+    # variables need to be declared global to be changed globally
+    global DB_HOST, DB_PORT, DB_DB, DB_USER, DB_PASS
+    global USER_AGENT, DRIVER_LOCATION, DEFAULT_DELAY, AGENT_RULES, SELENIUM_DELAY
     global WORKERS, BATCH_DELAY
+
     config = configparser.ConfigParser()
     config.read("config.ini")
     if "database" in config:
@@ -31,9 +34,10 @@ def parse_config():
 
     if "crawler" in config:
         USER_AGENT = config["crawler"].get("user_agent", USER_AGENT)
-        DRIVER_CHROME = config["crawler"].get("driver_chrome", DRIVER_CHROME)
+        DRIVER_LOCATION = config["crawler"].get("driver_location", DRIVER_LOCATION)
         DEFAULT_DELAY = int(config["crawler"].get("default_delay", DEFAULT_DELAY))
         AGENT_RULES = config["crawler"].get("agent_rules", AGENT_RULES)
+        SELENIUM_DELAY = int(config["crawler"].get("selenium_delay", SELENIUM_DELAY))
 
     if "threading" in config:
         WORKERS = int(config["threading"].get("workers", WORKERS))

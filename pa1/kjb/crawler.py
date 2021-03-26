@@ -27,7 +27,7 @@ headers = {'User-Agent': config.USER_AGENT}
 logger = logging.getLogger(__name__)
 
 
-def crawl_page(frontier, scheduler, page, db):
+def crawl_page(frontier, scheduler, page, db, webdriver):
     logger.debug("crawling on pageid({}) at {} on siteid({})".format(page.id, page.url, page.siteid))
 
     # fetch head
@@ -100,18 +100,16 @@ def crawl_page(frontier, scheduler, page, db):
     # handle HTML content
     logger.debug("pageid({}) is HTML, waiting on siteid({})".format(page.id, page.siteid))
     scheduler.wait_site(page.siteid)
-    # selenium should be used here
-    response = requests.get(page.url, headers=headers)
+
+    # fetch page with selenium
+    webdriver.get(page.url)
+    time.sleep(config.SELENIUM_DELAY)
     access = datetime.datetime.now()
-    logger.debug("sent GET request to pageid({}) at URL {}".format(page.id, page.url))
+    logger.debug("selenium get pageid({}) at URL {}".format(page.id, page.url))
 
-    # this fail is weird since we managed to fetch headers previously; mark "ERROR"
-    if response.status_code >= 400:
-        logger.debug("error on GET request on pageid({})".format(page.id))
-        db.update_page(page.id, "ERROR", None, response.status_code, None, access)
-        return
-    text = response.text
+    text = webdriver.page_source
 
+    # check duplicate
     hash = create_content_hash(text)
     if hash:
         dupid = db.hash_duplicate_check(hash)
@@ -123,13 +121,12 @@ def crawl_page(frontier, scheduler, page, db):
     else:
         hash = ""
 
-    #logger.debug("HTML on pageid({}) {}".format(page.id, text))
-    links = get_links(page.url, text)
-    images = get_images(page.url, text)
-
-    logger.debug("pageid({}) is HTML".format(page.id))
+    # update page record in database
     db.update_page(page.id, "HTML", text, response.status_code, hash, access)
 
+    # process links and urls in HTML
+    links = get_links(page.url, text)
+    images = get_images(page.url, text)
     for url in links:
         logger.debug("inserting new URL {}".format(url))
         new_pageid = frontier.insert_page(url)

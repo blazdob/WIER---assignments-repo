@@ -6,6 +6,9 @@ import time
 import concurrent.futures
 import kjb.config
 
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+
 from kjb.db import DB
 from kjb.frontier import Frontier
 from kjb.scheduler import Scheduler
@@ -13,6 +16,22 @@ from kjb.crawler import crawl_page
 
 
 logger = logging.getLogger(__name__)
+
+
+def create_webdrivers():
+    chrome_options = Options()
+    chrome_options.add_argument("--headless")
+    chrome_options.add_argument("user-agent={}".format(kjb.config.USER_AGENT))
+
+    webdrivers = []
+    for _ in range(kjb.config.WORKERS):
+        if not kjb.config.DRIVER_LOCATION:
+            driver = webdriver.Chrome(options=chrome_options)
+        else:
+            driver = webdriver.Chrome(kjb.config.DRIVER_LOCATION, options=chrome_options)
+        webdrivers.append(driver)
+
+    return webdrivers
 
 
 def create_db_front_and_sched(conn):
@@ -46,13 +65,13 @@ def pages_exist_thread(frontier, scheduler, db):
         crawl_page(frontier, scheduler, page, db)
 
 
-def oneshot_thread(frontier, scheduler, db):
+def oneshot_thread(frontier, scheduler, db, webdriver):
     logger.debug("thread started")
     page = frontier.get_next_page()
     if not page:
         logger.debug("no page, thread done")
         return
-    crawl_page(frontier, scheduler, page, db)
+    crawl_page(frontier, scheduler, page, db, webdriver)
     logger.debug("thread done")
 
 
@@ -90,12 +109,12 @@ def test_get_unprocessed_pages(db):
     print(type(rows[0][0]))
 
 
-def test_single_threaded(frontier, scheduler, db):
+def test_single_threaded(frontier, scheduler, db, webdrivers):
     bootstrap_frontier(frontier, db)
 
     page = frontier.get_next_page()
     while page:
-        crawl_page(frontier, scheduler, page, db)
+        crawl_page(frontier, scheduler, page, db, webdrivers[0])
         page = frontier.get_next_page()
 
     logger.debug("done processing pages")
@@ -116,15 +135,15 @@ def test_pages_exist_threading(frontier, scheduler, db):
             return
 
 
-def test_batch_threading(frontier, scheduler, db):
+def test_batch_threading(frontier, scheduler, db, webdrivers):
     bootstrap_frontier(frontier, db)
 
     while True:
         logger.debug("starting threads")
         try:
             with concurrent.futures.ThreadPoolExecutor(max_workers=kjb.config.WORKERS) as executor:
-                for _ in range(kjb.config.WORKERS):
-                    executor.submit(oneshot_thread, frontier, scheduler, db)
+                for i in range(kjb.config.WORKERS):
+                    executor.submit(oneshot_thread, frontier, scheduler, db, webdrivers[i])
             logger.debug("page batch processed, sleeping {} seconds ...".format(kjb.config.BATCH_DELAY))
             time.sleep(kjb.config.BATCH_DELAY)
         except KeyboardInterrupt:
@@ -139,9 +158,11 @@ def test_config():
     logger.debug("DB_PASS: \"{}\"".format(kjb.config.DB_PASS))
 
     logger.debug("USER_AGENT: \"{}\"".format(kjb.config.USER_AGENT))
-    logger.debug("DRIVER_CHROME: \"{}\"".format(kjb.config.DRIVER_CHROME))
+    logger.debug("DRIVER_LOCATION: \"{}\"".format(kjb.config.DRIVER_LOCATION))
     logger.debug("DEFAULT_DELAY: \"{}\"".format(kjb.config.DEFAULT_DELAY))
     logger.debug("AGENT_RULES: \"{}\"".format(kjb.config.AGENT_RULES))
+    logger.debug("SELENIUM_DELAY: \"{}\"".format(kjb.config.SELENIUM_DELAY))
+
     logger.debug("WORKERS: \"{}\"".format(kjb.config.WORKERS))
     logger.debug("BATCH_DELAY: \"{}\"".format(kjb.config.BATCH_DELAY))
 
@@ -150,7 +171,7 @@ def main():
     logging.basicConfig(format="%(asctime)s: thread(%(thread)d): %(levelname)s: %(module)s: %(funcName)s: %(message)s", level=logging.DEBUG)
     kjb.config.parse_config()
 
-    #test_config()
+    test_config()
 
     conn = psycopg2.connect(
         host=kjb.config.DB_HOST,
@@ -161,9 +182,14 @@ def main():
     )
 
     db, frontier, scheduler = create_db_front_and_sched(conn)
+    webdrivers = create_webdrivers()
 
-    #test_single_threaded(frontier, scheduler, db)
-    test_batch_threading(frontier, scheduler, db)
+    #test_single_threaded(frontier, scheduler, db, webdrivers)
+    test_batch_threading(frontier, scheduler, db, webdrivers)
+
+    for driver in webdrivers:
+        #driver.close()
+        driver.quit()
 
     conn.close()
 
