@@ -8,9 +8,11 @@ import datetime
 
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
+from selenium.common.exceptions import WebDriverException
 from urllib.parse import urljoin
 from bs4 import BeautifulSoup, SoupStrainer
 from email.utils import parsedate_to_datetime
+from requests.exceptions import RequestException
 
 from . import config
 
@@ -33,7 +35,14 @@ def crawl_page(frontier, scheduler, page, db, webdriver):
     # fetch head
     logger.debug("waiting on siteid({})".format(page.siteid))
     scheduler.wait_site(page.siteid)
-    response = requests.head(page.url, headers=headers)
+
+    try:
+        response = requests.head(page.url, headers=headers)
+    except RequestException as e:
+        logger.debug("error fetching headers: {}".format(str(e)))
+        db.update_page(page.id, "ERROR", None, None, None, datetime.datetime.now())
+        return
+
     access = datetime.datetime.now()
     logger.debug("sent HEAD request to pageid({}) at URL {}".format(page.id, page.url))
 
@@ -102,12 +111,17 @@ def crawl_page(frontier, scheduler, page, db, webdriver):
     scheduler.wait_site(page.siteid)
 
     # fetch page with selenium
-    webdriver.get(page.url)
-    time.sleep(config.SELENIUM_DELAY)
+    try:
+        webdriver.get(page.url)
+        time.sleep(config.SELENIUM_DELAY)
+        text = webdriver.page_source
+    except WebDriverException as e:
+        logger.debug("error fetching HTML content: {}".format(str(e)))
+        db.update_page(page.id, "ERROR", None, None, None, datetime.datetime.now())
+        return
+
     access = datetime.datetime.now()
     logger.debug("selenium get pageid({}) at URL {}".format(page.id, page.url))
-
-    text = webdriver.page_source
 
     # check duplicate
     hash = create_content_hash(text)
