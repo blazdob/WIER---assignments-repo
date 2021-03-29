@@ -1,5 +1,6 @@
 import configparser
 import logging
+import argparse
 
 
 DB_HOST = "localhost"
@@ -17,7 +18,7 @@ SELENIUM_DELAY = 5
 WORKERS = 4
 BATCH_DELAY = 2
 
-LOG_LEVEL = logging.INFO
+LOG_LEVEL = logging.DEBUG
 
 
 def translate_log_level(levelstr):
@@ -34,7 +35,7 @@ def translate_log_level(levelstr):
     elif levelstr == "DEBUG":
         return logging.DEBUG
     else:
-        return logging.NOTSET
+        return None
 
 
 def parse_config():
@@ -65,4 +66,19 @@ def parse_config():
         BATCH_DELAY = int(config["threading"].get("batch_delay", BATCH_DELAY))
 
     if "main" in config:
-        LOG_LEVEL = translate_log_level(config["main"].get("log_level", "INFO"))
+        level = translate_log_level(config["main"].get("log_level", "INFO"))
+        if level:
+            LOG_LEVEL = level
+
+
+def parse_arguments():
+    global LOG_LEVEL
+
+    parser = argparse.ArgumentParser(description="KJB Web Crawler")
+    parser.add_argument("-d", "--debug", default="", help="CRITICAL | ERROR | WARNING | INFO | DEBUG")
+    args = parser.parse_args()
+
+    if args.debug:
+        level = translate_log_level(args.debug)
+        if level:
+            LOG_LEVEL = level
