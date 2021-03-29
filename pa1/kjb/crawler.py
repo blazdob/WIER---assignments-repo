@@ -6,8 +6,6 @@ import requests
 import hashlib
 import datetime
 
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
 from selenium.common.exceptions import WebDriverException
 from urllib.parse import urljoin
 from bs4 import BeautifulSoup, SoupStrainer
@@ -17,10 +15,6 @@ from requests.exceptions import RequestException
 from . import config
 
 
-SEED_URLS = ['https://gov.si', 'https://evem.gov.si', 'https://e-uprava.gov.si', 'https://e-prostor.gov.si']
-WEB_PAGE_ADDRESS =SEED_URLS[2]              #trenutno samo za eno
-WEB_DRIVER_LOCATION = "./chromedriver"
-TIMEOUT = 5
 REGEX = "^(?:https?:\/\/)?(?:[^\.]+\.)?gov\.si(\/.*)?$"
 
 TAGS = ['a', 'link']
@@ -29,7 +23,7 @@ headers = {'User-Agent': config.USER_AGENT}
 logger = logging.getLogger(__name__)
 
 
-def crawl_page(frontier, scheduler, page, db, webdriver):
+def crawl_page(frontier, scheduler, page, db, driver):
     logger.info("crawling on pageid({}) at {} on siteid({})".format(page.id, page.url, page.siteid))
 
     # fetch head
@@ -112,9 +106,9 @@ def crawl_page(frontier, scheduler, page, db, webdriver):
 
     # fetch page with selenium
     try:
-        webdriver.get(page.url)
+        driver.get(page.url)
         time.sleep(config.SELENIUM_DELAY)
-        text = webdriver.page_source
+        text = driver.page_source
     except WebDriverException as e:
         logger.info("error fetching HTML content: {}".format(str(e)))
         db.update_page(page.id, "ERROR", None, None, None, datetime.datetime.now())
@@ -173,66 +167,6 @@ def create_content_hash(html_content):
         return None
 
 
-def crawler():
-    
-    #-------------------------------ČE TEGA NI POTEM SE OSTALE STRANI NE ODPREJO (TO NI ZA KONČNO VERZIJO KER NE PREVERJAŠ)----------------------
-    import os, ssl
-    if (not os.environ.get('PYTHONHTTPSVERIFY', '') and getattr(ssl, '_create_unverified_context', None)):
-        ssl._create_default_https_context = ssl._create_unverified_context
-    #-------------------------------ČE TEGA NI POTEM SE OSTALE STRANI NE ODPREJO (TO NI ZA KONČNO VERZIJO KER NE PREVERJAŠ)----------------------
-    
-    request = urllib.request.Request(
-        WEB_PAGE_ADDRESS, 
-        headers={'User-Agent': 'fri-wier-KJB'}
-    )
-
-    with urllib.request.urlopen(request) as response: 
-        html = response.read().decode("utf-8")
-        print(f"Retrieved Web content: \n\n'\n{html}\n'")
-
-    chrome_options = Options()
-    # If you comment the following line, a browser will show ...
-    chrome_options.add_argument("--headless")
-
-    #Adding a specific user agent
-    chrome_options.add_argument("user-agent=fri-wier-KJB")
-
-    print(f"Retrieving web page URL '{WEB_PAGE_ADDRESS}'")
-    driver = webdriver.Chrome(WEB_DRIVER_LOCATION, options=chrome_options)
-    driver.get(WEB_PAGE_ADDRESS)
-
-    # Timeout needed for Web page to render (read more about it)
-    time.sleep(TIMEOUT)
-
-    html = driver.page_source
-
-    print(f"Retrieved Web content (truncated to first 900 chars): \n\n'\n{html[:900]}\n'\n")
-
-    #page_msg = driver.find_element_by_class_name("element-title")
-
-    #print(f"Web page message: '{page_msg.text}'")
-
-    ########################################################################################
-    # Fetching links and images
-    #parser = 'html.parser'
-    #soup = BeautifulSoup(html, parser)
-    #print(f"Web page links:", fetchLinks(soup))
-    #print(f"Web page images:", fetchImages(soup))
-
-    #Crawl
-
-    """Starting from this URL, crawl the web until
-       you have collected maxurls URLS, then return them
-       as a set"""
-
-    links = crawl(SEED_URLS[1], 20)
-    print("Collected ", len(links), " links:")
-    for link in links:
-        print(link)
-
-    driver.close()
-
-
 def get_links(url, text):
     """Scan the text for http URLs and return a set
     of URLs found, without duplicates"""
@@ -258,24 +192,6 @@ def get_links(url, text):
 
     return links
 
-def crawl(url, maxurls=20):
-    """Starting from this URL, crawl the web until
-    you have collected maxurls URLS, then return them
-    as a set"""
-
-    urls = set([url])
-    while(len(urls) < maxurls):
-        # remove a URL at random
-        url = urls.pop()
-        print("URL: ", url)
-        text = get_page(url)
-        links = get_links(url, text)
-        urls.update(links)
-        # add the url back to the set
-        urls.add(url)
-
-    return urls
-
 
 def get_images(url, text):
     """Scan the text for images and return a set
@@ -298,8 +214,3 @@ def get_images(url, text):
         print("Error when trying to fetch images")
 
     return images
-
-
-
-if __name__ == "__main__":
-    crawler()
