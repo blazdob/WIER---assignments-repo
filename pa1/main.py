@@ -181,9 +181,6 @@ def main():
     kjb.config.parse_arguments()
     logging.basicConfig(format="%(asctime)s: thread(%(thread)d): %(levelname)s: %(module)s: %(funcName)s: %(message)s", level=kjb.config.LOG_LEVEL)
 
-    #test_config()
-    #return
-
     conn = psycopg2.connect(
         host=kjb.config.DB_HOST,
         port=kjb.config.DB_PORT,
