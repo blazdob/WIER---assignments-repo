@@ -19,11 +19,12 @@ WORKERS = 4
 BATCH_DELAY = 2
 
 LOG_LEVEL = logging.DEBUG
+STRATEGY = "BATCH_BFS"
 
 
 def translate_log_level(levelstr):
     if not levelstr:
-        return logging.NOTSET
+        return None
     if levelstr == "CRITICAL":
         return logging.CRITICAL
     elif levelstr == "ERROR":
@@ -38,12 +39,19 @@ def translate_log_level(levelstr):
         return None
 
 
+def check_strategy(strategystr):
+    if strategystr in ("SINGLE", "BATCH_BFS", "BATCH_ROTATION"):
+        return strategystr
+    else:
+        return False
+
+
 def parse_config():
     # variables need to be declared global to be changed globally
     global DB_HOST, DB_PORT, DB_DB, DB_USER, DB_PASS
     global USER_AGENT, DRIVER_LOCATION, DEFAULT_DELAY, AGENT_RULES, SELENIUM_DELAY
     global WORKERS, BATCH_DELAY
-    global LOG_LEVEL
+    global LOG_LEVEL, STRATEGY
 
     config = configparser.ConfigParser()
     config.read("config.ini")
@@ -69,16 +77,40 @@ def parse_config():
         level = translate_log_level(config["main"].get("log_level", "INFO"))
         if level:
             LOG_LEVEL = level
+        else:
+            logging.warning("unknown logging level in config, using default")
+        strategy = check_strategy(config["main"].get("strategy", "BATCH_BFS"))
+        if strategy:
+            STRATEGY = strategy
+        else:
+            logging.warning("unknown strategy in config, using default")
 
 
 def parse_arguments():
-    global LOG_LEVEL
+    global LOG_LEVEL, WORKERS, STRATEGY
 
     parser = argparse.ArgumentParser(description="KJB Web Crawler")
     parser.add_argument("-d", "--debug", default="", help="CRITICAL | ERROR | WARNING | INFO | DEBUG")
+    parser.add_argument("--strategy", help="SINGLE | BATCH_BFS | BATCH_ROTATION")
+    parser.add_argument("--workers", type=int, help="number of threads for crawling")
     args = parser.parse_args()
 
     if args.debug:
         level = translate_log_level(args.debug)
         if level:
             LOG_LEVEL = level
+        else:
+            logging.warning("unknown logging level arg, ignoring")
+
+    if args.strategy:
+        strategy = check_strategy(args.strategy)
+        if strategy:
+            STRATEGY = strategy
+        else:
+            logging.warning("unknown strategy arg, ignoring")
+
+    if args.workers:
+        if args.workers > 1:
+            WORKERS = args.workers
+        else:
+            logging.warning("too few workers, ignoring")

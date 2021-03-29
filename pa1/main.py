@@ -178,23 +178,24 @@ def test_by_site_access(frontier, scheduler, db, webdrivers):
 
 
 def test_config():
-    logger.critical("DB_HOST: \"{}\"".format(kjb.config.DB_HOST))
-    logger.critical("DB_PORT: \"{}\"".format(kjb.config.DB_PORT))
-    logger.critical("DB_DB: \"{}\"".format(kjb.config.DB_DB))
-    logger.critical("DB_USER: \"{}\"".format(kjb.config.DB_USER))
-    logger.critical("DB_PASS: \"{}\"".format(kjb.config.DB_PASS))
+    logger.critical("DB_HOST: {}".format(kjb.config.DB_HOST))
+    logger.critical("DB_PORT: {}".format(kjb.config.DB_PORT))
+    logger.critical("DB_DB: {}".format(kjb.config.DB_DB))
+    logger.critical("DB_USER: {}".format(kjb.config.DB_USER))
+    logger.critical("DB_PASS: {}".format(kjb.config.DB_PASS))
 
-    logger.critical("USER_AGENT: \"{}\"".format(kjb.config.USER_AGENT))
-    logger.critical("DRIVER_LOCATION: \"{}\"".format(kjb.config.DRIVER_LOCATION))
-    logger.critical("DEFAULT_DELAY: \"{}\"".format(kjb.config.DEFAULT_DELAY))
-    logger.critical("AGENT_RULES: \"{}\"".format(kjb.config.AGENT_RULES))
-    logger.critical("SELENIUM_DELAY: \"{}\"".format(kjb.config.SELENIUM_DELAY))
+    logger.critical("USER_AGENT: {}".format(kjb.config.USER_AGENT))
+    logger.critical("DRIVER_LOCATION: {}".format(kjb.config.DRIVER_LOCATION))
+    logger.critical("DEFAULT_DELAY: {}".format(kjb.config.DEFAULT_DELAY))
+    logger.critical("AGENT_RULES: {}".format(kjb.config.AGENT_RULES))
+    logger.critical("SELENIUM_DELAY: {}".format(kjb.config.SELENIUM_DELAY))
 
-    logger.critical("WORKERS: \"{}\"".format(kjb.config.WORKERS))
-    logger.critical("BATCH_DELAY: \"{}\"".format(kjb.config.BATCH_DELAY))
+    logger.critical("WORKERS: {}".format(kjb.config.WORKERS))
+    logger.critical("BATCH_DELAY: {}".format(kjb.config.BATCH_DELAY))
 
     # for log level integer meaning: https://docs.python.org/3.8/library/logging.html#logging-levels
-    logger.critical("LOG_LEVEL: \"{}\"".format(kjb.config.LOG_LEVEL))
+    logger.critical("LOG_LEVEL: {}".format(kjb.config.LOG_LEVEL))
+    logger.critical("STRATEGY: {}".format(kjb.config.STRATEGY))
 
 
 def main():
@@ -202,8 +203,8 @@ def main():
     kjb.config.parse_arguments()
     logging.basicConfig(format="%(asctime)s: thread(%(thread)d): %(levelname)s: %(module)s: %(funcName)s: %(message)s", level=kjb.config.LOG_LEVEL)
 
-    test_config()
-    return
+    #test_config()
+    #return
 
     conn = psycopg2.connect(
         host=kjb.config.DB_HOST,

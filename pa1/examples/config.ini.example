@@ -1,6 +1,8 @@
 [main]
 # CRITICAL | ERROR | WARNING | INFO | DEBUG
 log_level = DEBUG
+# SINGLE | BATCH_BFS | BATCH_ROTATION
+strategy = BATCH_ROTATION
 
 [database]
 host = localhost
