@@ -58,7 +58,7 @@ class DB(object):
                 cur = DB._conn.cursor()
                 cur.execute("INSERT INTO crawldb.page (site_id, page_type_code, url, accessed_time) VALUES (%s,%s,%s,%s) RETURNING id", (siteid, "FRONTIER", url, timestamp))
             except psycopg2.Error as e:
-                logger.debug(str(e))
+                logger.error(str(e))
                 DB._conn.rollback()
             else:
                 DB._conn.commit()
@@ -84,7 +84,7 @@ class DB(object):
                 cur = DB._conn.cursor()
                 cur.execute("UPDATE crawldb.page SET page_type_code = %s, html_content = %s, http_status_code = %s, html_hash = %s, accessed_time = %s WHERE id = %s", (type, html, http_status, hash, timestamp, id))
             except psycopg2.Error as e:
-                logger.debug(str(e))
+                logger.error(str(e))
                 DB._conn.rollback()
             else:
                 DB._conn.commit()
@@ -110,7 +110,7 @@ class DB(object):
                 cur = DB._conn.cursor()
                 cur.execute('INSERT INTO crawldb.image (page_id, filename, content_type, accessed_time) VALUES (%s,%s,%s,%s)', (pageid, filename, content_type, accessed))
             except psycopg2.Error as e:
-                logger.debug(str(e))
+                logger.error(str(e))
                 DB._conn.rollback()
             else:
                 DB._conn.commit()

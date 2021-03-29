@@ -36,23 +36,24 @@ def create_webdrivers():
 
 def create_db_front_and_sched(conn):
     db = DB(conn)
-    logger.debug("database initialized")
+    logger.info("database initialized")
     s = Scheduler(db)
     s.initialize()
-    logger.debug("scheduler initialized")
+    logger.info("scheduler initialized")
     f = Frontier(db, s)
     f.initialize()
-    logger.debug("frontier initialized")
+    logger.info("frontier initialized")
     return db, f, s
 
 
 def bootstrap_frontier(frontier, db):
     if not db.get_sites():
+        logger.info("frontier is empty, bootstrapping with seed pages")
         frontier.insert_page("https://gov.si")
         frontier.insert_page("https://evem.gov.si")
         frontier.insert_page("https://e-uprava.gov.si")
         frontier.insert_page("https://e-prostor.gov.si")
-        logger.debug("done bootstrapping frontier")
+        logger.info("done bootstrapping frontier")
 
 
 def pages_exist_thread(frontier, scheduler, db):
@@ -123,20 +124,20 @@ def test_single_threaded(frontier, scheduler, db, webdrivers):
         crawl_page(frontier, scheduler, page, db, webdrivers[0])
         page = frontier.get_next_page()
 
-    logger.debug("done processing pages")
+    logger.info("done processing pages in frontier")
 
 
 def test_pages_exist_threading(frontier, scheduler, db):
     bootstrap_frontier(frontier, db)
 
     while True:
-        logger.debug("starting threads")
+        logger.info("starting threads")
         try:
             with concurrent.futures.ThreadPoolExecutor(max_workers=kjb.config.WORKERS) as executor:
                 for _ in range(kjb.config.WORKERS):
                     executor.submit(pages_exist_thread, frontier, scheduler, db)
-            logger.debug("all pages have been processed, sleeping for 5 seconds ...")
-            time.sleep(5)
+            logger.info("all pages have been processed, sleeping {} seconds ...".format(kjb.config.BATCH_DELAY))
+            time.sleep(kjb.config.BATCH_DELAY)
         except KeyboardInterrupt:
             return
 
@@ -145,12 +146,12 @@ def test_batch_threading(frontier, scheduler, db, webdrivers):
     bootstrap_frontier(frontier, db)
 
     while True:
-        logger.debug("starting threads")
+        logger.info("starting threads")
         try:
             with concurrent.futures.ThreadPoolExecutor(max_workers=kjb.config.WORKERS) as executor:
                 for i in range(kjb.config.WORKERS):
                     executor.submit(oneshot_thread, frontier, scheduler, db, webdrivers[i])
-            logger.debug("page batch processed, sleeping {} seconds ...".format(kjb.config.BATCH_DELAY))
+            logger.info("page batch processed, sleeping {} seconds ...".format(kjb.config.BATCH_DELAY))
             time.sleep(kjb.config.BATCH_DELAY)
         except KeyboardInterrupt:
             return
@@ -160,22 +161,20 @@ def test_by_site_access(frontier, scheduler, db, webdrivers):
     bootstrap_frontier(frontier, db)
 
     while True:
-        logger.debug("getting pages by site")
-        Frontier._queue.clear()
+        logger.info("getting pages by site")
+        Frontier._queue.clear() # frontier's is not needed in this strategy
         pages = frontier.get_pages_by_site(list(Scheduler._sites_by_id.values()), kjb.config.WORKERS)
+        logger.info("starting threads")
         try:
             with concurrent.futures.ThreadPoolExecutor(max_workers=kjb.config.WORKERS) as executor:
                 for i in range(kjb.config.WORKERS):
                     if i >= len(pages):
                         break
                     executor.submit(oneshot_thread_with_page, frontier, scheduler, pages[i], db, webdrivers[i])
-            logger.debug("page batch processed, sleeping {} seconds ...".format(kjb.config.BATCH_DELAY))
+            logger.info("page batch processed, sleeping {} seconds ...".format(kjb.config.BATCH_DELAY))
             time.sleep(kjb.config.BATCH_DELAY)
         except KeyboardInterrupt:
             return
-        #for page in pages:
-        #    print("Page(id={}, siteid={}, url={}".format(page.id, page.siteid, page.url))
-        #break
 
 
 def test_config():
@@ -198,8 +197,6 @@ def test_config():
 def main():
     logging.basicConfig(format="%(asctime)s: thread(%(thread)d): %(levelname)s: %(module)s: %(funcName)s: %(message)s", level=logging.DEBUG)
     kjb.config.parse_config()
-
-    #test_config()
 
     conn = psycopg2.connect(
         host=kjb.config.DB_HOST,

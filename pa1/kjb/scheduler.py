@@ -43,7 +43,7 @@ class Site(object):
                 self.robotstr = response.text
                 self._robots_url = url
         except RequestException as e:
-            logger.debug("error with retrieving robots.txt: {}".format(str(e)))
+            logger.error("error with retrieving robots.txt: {}".format(str(e)))
 
     def parse_robots(self):
         self._parser = Robots.parse(self._robots_url, self.robotstr)

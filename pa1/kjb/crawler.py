@@ -30,7 +30,7 @@ logger = logging.getLogger(__name__)
 
 
 def crawl_page(frontier, scheduler, page, db, webdriver):
-    logger.debug("crawling on pageid({}) at {} on siteid({})".format(page.id, page.url, page.siteid))
+    logger.info("crawling on pageid({}) at {} on siteid({})".format(page.id, page.url, page.siteid))
 
     # fetch head
     logger.debug("waiting on siteid({})".format(page.siteid))
@@ -39,7 +39,7 @@ def crawl_page(frontier, scheduler, page, db, webdriver):
     try:
         response = requests.head(page.url, headers=headers)
     except RequestException as e:
-        logger.debug("error fetching headers: {}".format(str(e)))
+        logger.info("error fetching headers: {}".format(str(e)))
         db.update_page(page.id, "ERROR", None, None, None, datetime.datetime.now())
         return
 
@@ -48,13 +48,13 @@ def crawl_page(frontier, scheduler, page, db, webdriver):
 
     # mark error
     if response.status_code >= 400:
-        logger.debug("error on HEAD request on pageid({})".format(page.id))
+        logger.info("error on HEAD request on pageid({})".format(page.id))
         db.update_page(page.id, "ERROR", None, response.status_code, None, access)
         return
 
     # handle and mark redirect
     if response.status_code >= 300:
-        logger.debug("redirect on pageid({})".format(page.id))
+        logger.info("redirect on pageid({})".format(page.id))
         db.update_page(page.id, "REDIRECT", None, response.status_code, None, access)
         targetid = frontier.insert_page(response.headers.get("Location", ""))
         if targetid:
@@ -83,7 +83,7 @@ def crawl_page(frontier, scheduler, page, db, webdriver):
     else:
         page_type = None
     if page_type == "BINARY":
-        logger.debug("pageid({}) is document of type \"{}\"".format(page.id, data_type))
+        logger.info("pageid({}) is document of type \"{}\"".format(page.id, data_type))
         db.insert_page_data(page.id, data_type)
         db.update_page(page.id, "BINARY", None, response.status_code, None, access)
         return
@@ -95,14 +95,14 @@ def crawl_page(frontier, scheduler, page, db, webdriver):
         filename = page.url.split("/")[-1]
         # "Date" header parsing explained: https://stackoverflow.com/a/59416334
         accessed = parsedate_to_datetime(response.headers["Date"])
-        logger.debug("pageid({}) is image of type \"{}\" and filename \"{}\"".format(page.id, content_type, filename))
+        logger.info("pageid({}) is image of type \"{}\" and filename \"{}\"".format(page.id, content_type, filename))
         db.insert_image_data(page.id, filename, content_type, accessed)
         db.update_page(page.id, "BINARY", None, response.status_code, None, access)
         return
 
     # mark such pages as "OTHER"
     if "text/html" not in content_type:
-        logger.debug("pageid({}) is of no useful format".format(page.id))
+        logger.info("pageid({}) is of no useful format".format(page.id))
         db.update_page(page.id, "OTHER", None, response.status_code, None, access)
         return
 
@@ -116,7 +116,7 @@ def crawl_page(frontier, scheduler, page, db, webdriver):
         time.sleep(config.SELENIUM_DELAY)
         text = webdriver.page_source
     except WebDriverException as e:
-        logger.debug("error fetching HTML content: {}".format(str(e)))
+        logger.info("error fetching HTML content: {}".format(str(e)))
         db.update_page(page.id, "ERROR", None, None, None, datetime.datetime.now())
         return
 
@@ -128,7 +128,7 @@ def crawl_page(frontier, scheduler, page, db, webdriver):
     if hash:
         dupid = db.hash_duplicate_check(hash)
         if dupid:
-            logger.debug("pageid({}) is duplicate of pageid({})".format(page.id, dupid))
+            logger.info("pageid({}) is duplicate of pageid({})".format(page.id, dupid))
             db.update_page(page.id, "DUPLICATE", None, response.status_code, None, access)
             db.insert_link(page.id, dupid)
             return
