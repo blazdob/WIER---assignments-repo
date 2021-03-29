@@ -158,3 +158,15 @@ class DB(object):
                     return row[0]
             finally:
                 cur.close()
+
+    def get_unprocessed_pages_by_site(self, siteid, num_pages):
+        with DB._lock:
+            try:
+                cur = DB._conn.cursor()
+                cur.execute("SELECT id, site_id, url FROM crawldb.page WHERE site_id = %s AND page_type_code = 'FRONTIER' ORDER BY accessed_time LIMIT %s", (siteid, num_pages))
+            except psycopg2.Error as e:
+                logger.error(str(e))
+            else:
+                return cur.fetchall()
+            finally:
+                cur.close()

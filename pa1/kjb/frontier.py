@@ -64,6 +64,35 @@ class Frontier(object):
                 return None
             return Frontier._queue.pop()
 
+    def get_pages_by_site(self, sites, num_pages):
+        if not sites:
+            return []
+
+        # sort a list of sites by last access
+        sites.sort(key=lambda site: site._last_access)
+
+        # get a list of page lists from every site
+        list_of_page_lists = []
+        for site in sites:
+            rows = Frontier._db.get_unprocessed_pages_by_site(site.id, num_pages)
+            if not rows:
+                continue
+            site_pages = []
+            for row in rows:
+                site_pages.append(Page(row[0], row[1], row[2]))
+            list_of_page_lists.append(site_pages)
+
+        if not list_of_page_lists:
+            return []
+
+        pages = []
+        for i in range(num_pages):
+            for page_list in list_of_page_lists:
+                if i >= len(page_list):
+                    continue
+                pages.append(page_list[i])
+        return pages
+
 
 class Page(object):
 

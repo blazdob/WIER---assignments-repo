@@ -75,6 +75,12 @@ def oneshot_thread(frontier, scheduler, db, webdriver):
     logger.debug("thread done")
 
 
+def oneshot_thread_with_page(frontier, scheduler, page, db, webdriver):
+    logger.debug("thread started")
+    crawl_page(frontier, scheduler, page, db, webdriver)
+    logger.debug("thread done")
+
+
 def test_schema(conn):
     cur = conn.cursor()
     print("Databases:")
@@ -150,6 +156,28 @@ def test_batch_threading(frontier, scheduler, db, webdrivers):
             return
 
 
+def test_by_site_access(frontier, scheduler, db, webdrivers):
+    bootstrap_frontier(frontier, db)
+
+    while True:
+        logger.debug("getting pages by site")
+        Frontier._queue.clear()
+        pages = frontier.get_pages_by_site(list(Scheduler._sites_by_id.values()), kjb.config.WORKERS)
+        try:
+            with concurrent.futures.ThreadPoolExecutor(max_workers=kjb.config.WORKERS) as executor:
+                for i in range(kjb.config.WORKERS):
+                    if i >= len(pages):
+                        break
+                    executor.submit(oneshot_thread_with_page, frontier, scheduler, pages[i], db, webdrivers[i])
+            logger.debug("page batch processed, sleeping {} seconds ...".format(kjb.config.BATCH_DELAY))
+            time.sleep(kjb.config.BATCH_DELAY)
+        except KeyboardInterrupt:
+            return
+        #for page in pages:
+        #    print("Page(id={}, siteid={}, url={}".format(page.id, page.siteid, page.url))
+        #break
+
+
 def test_config():
     logger.debug("DB_HOST: \"{}\"".format(kjb.config.DB_HOST))
     logger.debug("DB_PORT: \"{}\"".format(kjb.config.DB_PORT))
@@ -171,7 +199,7 @@ def main():
     logging.basicConfig(format="%(asctime)s: thread(%(thread)d): %(levelname)s: %(module)s: %(funcName)s: %(message)s", level=logging.DEBUG)
     kjb.config.parse_config()
 
-    test_config()
+    #test_config()
 
     conn = psycopg2.connect(
         host=kjb.config.DB_HOST,
@@ -185,10 +213,10 @@ def main():
     webdrivers = create_webdrivers()
 
     #test_single_threaded(frontier, scheduler, db, webdrivers)
-    test_batch_threading(frontier, scheduler, db, webdrivers)
+    #test_batch_threading(frontier, scheduler, db, webdrivers)
+    test_by_site_access(frontier, scheduler, db, webdrivers)
 
     for driver in webdrivers:
-        #driver.close()
         driver.quit()
 
     conn.close()
