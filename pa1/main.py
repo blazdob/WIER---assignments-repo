@@ -193,10 +193,16 @@ def test_config():
     logger.debug("WORKERS: \"{}\"".format(kjb.config.WORKERS))
     logger.debug("BATCH_DELAY: \"{}\"".format(kjb.config.BATCH_DELAY))
 
+    # for log level integer meaning: https://docs.python.org/3.8/library/logging.html#logging-levels
+    logger.debug("LOG_LEVEL: \"{}\"".format(kjb.config.LOG_LEVEL))
+
 
 def main():
-    logging.basicConfig(format="%(asctime)s: thread(%(thread)d): %(levelname)s: %(module)s: %(funcName)s: %(message)s", level=logging.DEBUG)
     kjb.config.parse_config()
+    logging.basicConfig(format="%(asctime)s: thread(%(thread)d): %(levelname)s: %(module)s: %(funcName)s: %(message)s", level=kjb.config.LOG_LEVEL)
+
+    #test_config()
+    #return
 
     conn = psycopg2.connect(
         host=kjb.config.DB_HOST,
