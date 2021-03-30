@@ -52,8 +52,11 @@ Some python packages needed by crawler can be installed with pip (make sure that
 
 # SQL Commands for some crawler operations
 
-## Set all pages that had error to be recrawled in future
-`UPDATE crawldb.page SET page_type_code = 'FRONTIER' WHERE page_type_code = 'ERROR'`
+- Set all pages that had error to be recrawled in future
+  `UPDATE crawldb.page SET page_type_code = 'FRONTIER' WHERE page_type_code = 'ERROR'`
+- Get distinct IDs of domains of pages in FRONTIER; useful when seeing how many domains are
+  being rotated when using rotation strategy:
+  `SELECT DISTINCT ON (site_id) id, site_id, url FROM crawldb.page WHERE page_type_code = 'FRONTIER'`
 
 # Operating crawler
 - You have to be in `pa1/crawler` directory.
