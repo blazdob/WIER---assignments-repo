@@ -57,6 +57,8 @@ Some python packages needed by crawler can be installed with pip (make sure that
 - Get distinct IDs of domains of pages in FRONTIER; useful when seeing how many domains are
   being rotated when using rotation strategy:
   `SELECT DISTINCT ON (site_id) id, site_id, url FROM crawldb.page WHERE page_type_code = 'FRONTIER'`
+- Get number of processed pages:
+  `SELECT COUNT(*) FROM crawldb.page WHERE page_type_code != 'FRONTIER'`
 
 # Operating crawler
 - You have to be in `pa1/crawler` directory.
