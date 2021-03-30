@@ -67,4 +67,5 @@ Some python packages needed by crawler can be installed with pip (make sure that
 - When you try to stop the program the selenium webdrivers are going to try to reconnect several times before
   finally quitting so you have to be patient for a little while. If you try to end it quickly with CTRL-C again,
   the program will stop faster but with an ugly exception trace. We are not sure whether this is due to a
-  certain bug or just selenium not working best with CTRL-C signaling.
+  certain bug or just selenium not working best with CTRL-C signaling. Sometimes exception might happen while
+  initializing selenium webdrivers. We are not sure why that is. In this case just re-run the program.
