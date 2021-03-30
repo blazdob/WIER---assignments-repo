@@ -16,12 +16,12 @@ Some python packages needed by crawler can be installed with pip (make sure that
 `pip install -r requirements.txt`
 
 # PostgreSQL in Docker setup (with db/init-scripts mount)
-- change directory to `pa1` folder of repository
+- change directory to `pa1/crawler` folder of repository
 - first time database container run:
   `docker run --name postgresql-wier -e POSTGRES_PASSWORD=password -e POSTGRES_USER=user -v $PWD/db/pgdata:/var/lib/postgresql/data -v $PWD/db/init-scripts:/docker-entrypoint-initdb.d -p 5432:5432 -d postgres:12`
 
 # PostgreSQL and pgAdmin in Docker setup (no db/init-scripts mount)
-- change directory to `pa1` folder of repository
+- change directory to `pa1/crawler` folder of repository
 - run database container:
   `docker run --name postgresql-wier -e POSTGRES_PASSWORD=password -e POSTGRES_USER=user -v $PWD/db/pgdata:/var/lib/postgresql/data -p 5432:5432 -d postgres:12`
 - run pgAdmin container (you can use anything that looks like email address, it doesn't have to be valid):
@@ -50,16 +50,21 @@ Some python packages needed by crawler can be installed with pip (make sure that
 - to check logs:
   `docker logs -f container-name`
 
-# Config file
-`examples/config.ini.example` provides example config file for crawler. This file can
-be copied to the same folder as `main.py` with name `config.ini` and modified as necessary.
-
 # SQL Commands for some crawler operations
 
 ## Set all pages that had error to be recrawled in future
 `UPDATE crawldb.page SET page_type_code = 'FRONTIER' WHERE page_type_code = 'ERROR'`
 
 # Operating crawler
-- you have to be in `pa1` directory.
-- run crawler with `python main.py`
-- crawler can be run with some arguments: `python main.py -d DEBUG --strategy BATCH_BFS --workers 6`. For more information: `python main.py --help`
+- You have to be in `pa1/crawler` directory.
+- Run crawler with `python main.py`
+- Crawler can be run with arguments: `python main.py -d DEBUG --strategy BATCH_BFS --workers 6`. For more information: `python main.py --help`
+- `examples/config.ini.example` provides example config file for crawler. This file can
+  be copied to the same folder as `main.py` with name `config.ini` and modified as necessary.
+- You can stop the crawler with CTRL-C, preferably during sleep after thread batch is finished. If you try stopping
+  it during thread execution, the program won't terminate immediately. The signal will be processed only after
+  the threads are finished.
+- When you try to stop the program the selenium webdrivers are going to try to reconnect several times before
+  finally quitting so you have to be patient for a little while. If you try to end it quickly with CTRL-C again,
+  the program will stop faster but with an ugly exception trace. We are not sure whether this is due to a
+  certain bug or just selenium not working best with CTRL-C signaling.
