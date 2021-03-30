@@ -24,20 +24,12 @@ def create_webdrivers():
     chrome_options.add_argument("user-agent={}".format(kjb.config.USER_AGENT))
 
     webdrivers = []
-    if kjb.config.STRATEGY == "SINGLE":
+    for _ in range(kjb.config.WORKERS):
         if not kjb.config.DRIVER_LOCATION:
             driver = webdriver.Chrome(options=chrome_options)
         else:
             driver = webdriver.Chrome(kjb.config.DRIVER_LOCATION, options=chrome_options)
         webdrivers.append(driver)
-    else:
-        for _ in range(kjb.config.WORKERS):
-            if not kjb.config.DRIVER_LOCATION:
-                driver = webdriver.Chrome(options=chrome_options)
-            else:
-                driver = webdriver.Chrome(kjb.config.DRIVER_LOCATION, options=chrome_options)
-            webdrivers.append(driver)
-
     return webdrivers
 
 
@@ -113,24 +105,17 @@ def test_get_unprocessed_pages(db):
     print(type(rows[0][0]))
 
 
-def crawl_single_threaded(frontier, scheduler, db, webdrivers):
-    page = frontier.get_next_page()
-    while page:
-        try:
-            crawl_page(frontier, scheduler, page, db, webdrivers[0])
-            page = frontier.get_next_page()
-        except KeyboardInterrupt:
-            return
-    logger.info("done processing pages in frontier")
-
-
-def crawl_batch_threaded(frontier, scheduler, db, webdrivers):
+def crawl_BFS(frontier, scheduler, db, webdrivers):
     while True:
-        logger.info("starting threads")
         try:
-            with concurrent.futures.ThreadPoolExecutor(max_workers=kjb.config.WORKERS) as executor:
-                for i in range(kjb.config.WORKERS):
-                    executor.submit(oneshot_thread, frontier, scheduler, db, webdrivers[i])
+            if kjb.config.WORKERS > 1:
+                logger.info("starting threads")
+                with concurrent.futures.ThreadPoolExecutor(max_workers=kjb.config.WORKERS) as executor:
+                    for i in range(kjb.config.WORKERS):
+                        executor.submit(oneshot_thread, frontier, scheduler, db, webdrivers[i])
+            else:
+                oneshot_thread(frontier, scheduler, db, webdrivers[0])
+
             logger.info("page batch processed, sleeping {} seconds ...".format(kjb.config.BATCH_DELAY))
             time.sleep(kjb.config.BATCH_DELAY)
         except KeyboardInterrupt:
@@ -139,16 +124,20 @@ def crawl_batch_threaded(frontier, scheduler, db, webdrivers):
 
 def crawl_by_site_access(frontier, scheduler, db, webdrivers):
     while True:
-        logger.info("getting pages by site")
-        Frontier._queue.clear() # frontier's queue is not needed in this strategy
-        pages = frontier.get_pages_by_site(list(Scheduler._sites_by_id.values()), kjb.config.WORKERS)
-        logger.info("starting threads")
         try:
-            with concurrent.futures.ThreadPoolExecutor(max_workers=kjb.config.WORKERS) as executor:
-                for i in range(kjb.config.WORKERS):
-                    if i >= len(pages):
-                        break
-                    executor.submit(oneshot_thread_with_page, frontier, scheduler, pages[i], db, webdrivers[i])
+            logger.info("getting pages by site")
+            Frontier._queue.clear() # frontier's queue is not needed in this strategy
+            pages = frontier.get_pages_by_site(list(Scheduler._sites_by_id.values()), kjb.config.WORKERS)
+            if kjb.config.WORKERS > 1:
+                logger.info("starting threads")
+                with concurrent.futures.ThreadPoolExecutor(max_workers=kjb.config.WORKERS) as executor:
+                    for i in range(kjb.config.WORKERS):
+                        if i >= len(pages):
+                            break
+                        executor.submit(oneshot_thread_with_page, frontier, scheduler, pages[i], db, webdrivers[i])
+            else:
+                oneshot_thread_with_page(frontier, scheduler, pages[0], db, webdrivers[0])
+
             logger.info("page batch processed, sleeping {} seconds ...".format(kjb.config.BATCH_DELAY))
             time.sleep(kjb.config.BATCH_DELAY)
         except KeyboardInterrupt:
@@ -181,6 +170,9 @@ def main():
     kjb.config.parse_arguments()
     logging.basicConfig(format="%(asctime)s: thread(%(thread)d): %(levelname)s: %(module)s: %(funcName)s: %(message)s", level=kjb.config.LOG_LEVEL)
 
+    #test_config()
+    #return
+
     conn = psycopg2.connect(
         host=kjb.config.DB_HOST,
         port=kjb.config.DB_PORT,
@@ -193,10 +185,8 @@ def main():
     bootstrap_frontier(frontier, db)
     webdrivers = create_webdrivers()
 
-    if kjb.config.STRATEGY == "SINGLE":
-        crawl_single_threaded(frontier, scheduler, db, webdrivers)
-    elif kjb.config.STRATEGY == "BATCH_BFS":
-        crawl_batch_threaded(frontier, scheduler, db, webdrivers)
+    if kjb.config.STRATEGY == "BATCH_BFS":
+        crawl_BFS(frontier, scheduler, db, webdrivers)
     else:
         crawl_by_site_access(frontier, scheduler, db, webdrivers)
 

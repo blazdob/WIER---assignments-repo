@@ -21,6 +21,8 @@ BATCH_DELAY = 2
 LOG_LEVEL = logging.DEBUG
 STRATEGY = "BATCH_BFS"
 
+logger = logging.getLogger(__name__)
+
 
 def translate_log_level(levelstr):
     if not levelstr:
@@ -40,7 +42,7 @@ def translate_log_level(levelstr):
 
 
 def check_strategy(strategystr):
-    if strategystr in ("SINGLE", "BATCH_BFS", "BATCH_ROTATION"):
+    if strategystr in ("BATCH_BFS", "BATCH_ROTATION"):
         return strategystr
     else:
         return False
@@ -78,12 +80,12 @@ def parse_config():
         if level:
             LOG_LEVEL = level
         else:
-            logging.warning("unknown logging level in config, using default")
+            logger.warning("unknown logging level in config, using default")
         strategy = check_strategy(config["main"].get("strategy", "BATCH_BFS"))
         if strategy:
             STRATEGY = strategy
         else:
-            logging.warning("unknown strategy in config, using default")
+            logger.warning("unknown strategy in config, using default")
 
 
 def parse_arguments():
@@ -91,7 +93,7 @@ def parse_arguments():
 
     parser = argparse.ArgumentParser(description="KJB Web Crawler")
     parser.add_argument("-d", "--debug", default="", help="CRITICAL | ERROR | WARNING | INFO | DEBUG")
-    parser.add_argument("--strategy", help="SINGLE | BATCH_BFS | BATCH_ROTATION")
+    parser.add_argument("--strategy", help="BATCH_BFS | BATCH_ROTATION")
     parser.add_argument("--workers", type=int, help="number of threads for crawling")
     args = parser.parse_args()
 
@@ -100,17 +102,17 @@ def parse_arguments():
         if level:
             LOG_LEVEL = level
         else:
-            logging.warning("unknown logging level arg, ignoring")
+            logger.warning("unknown logging level arg, ignoring")
 
     if args.strategy:
         strategy = check_strategy(args.strategy)
         if strategy:
             STRATEGY = strategy
         else:
-            logging.warning("unknown strategy arg, ignoring")
+            logger.warning("unknown strategy arg, ignoring")
 
     if args.workers:
-        if args.workers > 1:
+        if args.workers > 0:
             WORKERS = args.workers
         else:
-            logging.warning("too few workers, ignoring")
+            logger.warning("too few workers, ignoring")
