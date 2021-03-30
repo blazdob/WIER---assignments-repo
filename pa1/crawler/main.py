@@ -140,7 +140,7 @@ def crawl_batch_threaded(frontier, scheduler, db, webdrivers):
 def crawl_by_site_access(frontier, scheduler, db, webdrivers):
     while True:
         logger.info("getting pages by site")
-        Frontier._queue.clear() # frontier's is not needed in this strategy
+        Frontier._queue.clear() # frontier's queue is not needed in this strategy
         pages = frontier.get_pages_by_site(list(Scheduler._sites_by_id.values()), kjb.config.WORKERS)
         logger.info("starting threads")
         try:
