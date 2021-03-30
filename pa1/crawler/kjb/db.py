@@ -170,3 +170,27 @@ class DB(object):
                 return cur.fetchall()
             finally:
                 cur.close()
+
+    def get_image_data(self, pageid):
+        with DB._lock:
+            try:
+                cur = DB._conn.cursor()
+                cur.execute("SELECT id FROM crawldb.image WHERE page_id = %s", (pageid,))
+            except psycopg2.Error as e:
+                logger.error(str(e))
+            else:
+                return cur.fetchall()
+            finally:
+                cur.close()
+
+    def get_page_data(self, pageid):
+        with DB._lock:
+            try:
+                cur = DB._conn.cursor()
+                cur.execute("SELECT id FROM crawldb.page_data WHERE page_id = %s", (pageid,))
+            except psycopg2.Error as e:
+                logger.error(str(e))
+            else:
+                return cur.fetchall()
+            finally:
+                cur.close()

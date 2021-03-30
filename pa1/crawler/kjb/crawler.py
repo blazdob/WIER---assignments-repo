@@ -23,6 +23,12 @@ headers = {'User-Agent': config.USER_AGENT}
 logger = logging.getLogger(__name__)
 
 
+# update_page calls should always be done at the end of each code path in case user stops
+# the crawler in the middle of page processing. In this case, the page will be crawled again
+# and some pages and links might be inserted again but this is not a problem since the
+# database doesn't allow duplicates and we check page_data and image existence.
+# If update_page is not called at the end, the page might only be partially crawled when
+# user exits and other parts will never be picked again.
 def crawl_page(frontier, scheduler, page, db, driver):
     logger.info("crawling on pageid({}) at {} on siteid({})".format(page.id, page.url, page.siteid))
 
@@ -49,10 +55,10 @@ def crawl_page(frontier, scheduler, page, db, driver):
     # handle and mark redirect
     if response.status_code >= 300:
         logger.info("redirect on pageid({})".format(page.id))
-        db.update_page(page.id, "REDIRECT", None, response.status_code, None, access)
         targetid = frontier.insert_page(response.headers.get("Location", ""))
         if targetid:
             db.insert_link(page.id, targetid)
+        db.update_page(page.id, "REDIRECT", None, response.status_code, None, access)
         return
 
     # content types reference:
@@ -60,7 +66,7 @@ def crawl_page(frontier, scheduler, page, db, driver):
     #
     # content types just for microsoft documents:
     # https://stackoverflow.com/a/4212908
-    content_type = response.headers["Content-Type"]
+    content_type = response.headers.get("Content-Type", "")
 
     # handle document types
     page_type = "BINARY" # avoid repetition for page_type
@@ -78,7 +84,8 @@ def crawl_page(frontier, scheduler, page, db, driver):
         page_type = None
     if page_type == "BINARY":
         logger.info("pageid({}) is document of type \"{}\"".format(page.id, data_type))
-        db.insert_page_data(page.id, data_type)
+        if not db.get_page_data(page.id): # needed if crawler stops after page data insert and before page update
+            db.insert_page_data(page.id, data_type)
         db.update_page(page.id, "BINARY", None, response.status_code, None, access)
         return
 
@@ -90,7 +97,8 @@ def crawl_page(frontier, scheduler, page, db, driver):
         # "Date" header parsing explained: https://stackoverflow.com/a/59416334
         accessed = parsedate_to_datetime(response.headers["Date"])
         logger.info("pageid({}) is image of type \"{}\" and filename \"{}\"".format(page.id, content_type, filename))
-        db.insert_image_data(page.id, filename, content_type, accessed)
+        if not db.get_image_data(page.id): # needed if crawler stops after image data insert and before page update
+            db.insert_image_data(page.id, filename, content_type, accessed)
         db.update_page(page.id, "BINARY", None, response.status_code, None, access)
         return
 
@@ -123,14 +131,11 @@ def crawl_page(frontier, scheduler, page, db, driver):
         dupid = db.hash_duplicate_check(hash)
         if dupid:
             logger.info("pageid({}) is duplicate of pageid({})".format(page.id, dupid))
-            db.update_page(page.id, "DUPLICATE", None, response.status_code, None, access)
             db.insert_link(page.id, dupid)
+            db.update_page(page.id, "DUPLICATE", None, response.status_code, None, access)
             return
     else:
         hash = ""
-
-    # update page record in database
-    db.update_page(page.id, "HTML", text, response.status_code, hash, access)
 
     # process links and urls in HTML
     links = get_links(page.url, text)
@@ -155,6 +160,9 @@ def crawl_page(frontier, scheduler, page, db, driver):
     for url in images:
         logger.debug("inserting new image at {}".format(url))
         frontier.insert_page(url)
+
+    # update page record in database
+    db.update_page(page.id, "HTML", text, response.status_code, hash, access)
 
 
 def create_content_hash(html_content):
