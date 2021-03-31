@@ -1,0 +1,23 @@
+[main]
+# CRITICAL | ERROR | WARNING | INFO | DEBUG
+log_level = DEBUG
+# BATCH_BFS | BATCH_ROTATION
+strategy = BATCH_ROTATION
+
+[database]
+host = localhost
+port = 5432
+db   = postgres
+user = user
+password = password
+
+[crawler]
+user_agent = fri-wier-KJB
+driver_location =
+default_delay = 5
+agent_rules = *
+selenium_delay = 5
+
+[threading]
+workers = 4
+batch_delay = 2
