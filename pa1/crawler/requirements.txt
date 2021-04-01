@@ -1,5 +1,4 @@
-requests
-reppy
-url_normalize
-selenium
-beautifulsoup4
+bs4
+html
+re
+json
