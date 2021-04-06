@@ -2,18 +2,27 @@ import os
 import numpy as np
 import sys
 
-overstock1 = 'data/overstock.com/jewelry01.html'
-overstock2 = 'data/overstock.com/jewelry02.html'
-rtvslo1 = 'data/rtvslo.si/Audi A6 50 TDI quattro_ nemir v premijskem razredu - RTVSLO.si.html'
-rtvslo2 = 'data/rtvslo.si/Volvo XC 40 D4 AWD momentum_ suvereno med najboljše v razredu - RTVSLO.si.html'
+overstock1 = '../input-extraction/overstock.com/jewelry01.html'
+overstock2 = '../input-extraction/overstock.com/jewelry02.html'
+rtvslo1 = '../input-extraction/rtvslo.si/Audi A6 50 TDI quattro_ nemir v premijskem razredu - RTVSLO.si.html'
+rtvslo2 = '../input-extraction/rtvslo.si/Volvo XC 40 D4 AWD momentum_ suvereno med najboljše v razredu - RTVSLO.si.html'
 ####TODO PUT 2 MORE HTML WEBSITES
 
 
 
 page_source = rtvslo1  # rtvslo1, rtvslo2, overstock1, overstock2, ....., .......
+print(open(page_source))
 
 
 ##### MAIN PROGRAM
+
+#get HTML code
+htmlObject = open(page_source, 'rb')
+html_code = htmlObject.read()
+print(html_code)
+
+# parsing the correct way
+output = ""
 try:
     if sys.argv[1] == "A":
         from regex_parser import regex_parser

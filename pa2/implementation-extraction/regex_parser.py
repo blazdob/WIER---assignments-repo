@@ -1,2 +1,2 @@
-def regex_parser():
+def regex_parser(html_code, page_source):
     return 0 
