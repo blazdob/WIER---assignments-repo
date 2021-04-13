@@ -6,13 +6,14 @@ overstock1 = '../input-extraction/overstock.com/jewelry01.html'
 overstock2 = '../input-extraction/overstock.com/jewelry02.html'
 rtvslo1 = '../input-extraction/rtvslo.si/Audi A6 50 TDI quattro_ nemir v premijskem razredu - RTVSLO.si.html'
 rtvslo2 = '../input-extraction/rtvslo.si/Volvo XC 40 D4 AWD momentum_ suvereno med najboljše v razredu - RTVSLO.si.html'
-####TODO PUT 2 MORE HTML WEBSITES
+bolha = '../input-extraction/fotoaparat - Iskanje na bolha.com.html'
+siol = '../input-extraction/Novi kodiaq na cesti ga bo težko ločiti od starega #foto - siol.net.html'
 
 
 
-page_source = rtvslo1  # rtvslo1, rtvslo2, overstock1, overstock2, ....., .......
+page_source = bolha  # rtvslo1, rtvslo2, overstock1, overstock2, ....., .......
 #print(open(page_source))
-SOURCE_NAME = "rtvslo"
+SOURCE_NAME = "bolha"
 
 ##### MAIN PROGRAM
 
