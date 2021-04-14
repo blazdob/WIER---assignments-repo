@@ -49,21 +49,18 @@ def xpath_parser(html_code, SOURCE_NAME):
 		data[SOURCE_NAME] = item
 		return json.dumps(data, indent=4, sort_keys=True, ensure_ascii=False)
 	elif "bolha" in SOURCE_NAME:
-		objects = tree.xpath('//ul[@class="EntityList-items"]')
-		print(len(objects))
+		objects = tree.xpath('.//li[contains(@class, "EntityList-item EntityList-item--Regular EntityList-item--n")]')
 		for i in range(len(objects)):
 			item = {
         	    "Title": "",
-        	    "Author": "",
+        	    "Price": "",
         	    "PublishedTime": "",
-        	    "Lead": "",
-        	    "Content": ""
+        	    "Location": "",
         	}
-			item["PublishedTime"] = remove_unwanted_characters("".join(tree.xpath('//span[@class= "article__publish_date"]/span[position()<4 and position()>1]/text()')))
-			item["Title"] = remove_unwanted_characters(tree.xpath('//h1[@class= "article__title"]/text()')[0])
-			item["Author"] = remove_unwanted_characters(tree.xpath('//span[@class= "article__author "]/a/text()')[0])
-			item["Lead"] = remove_unwanted_characters(tree.xpath('//div[@class= "article__intro js_articleIntro"]/p/text()')[0])
-			item["Content"] = remove_unwanted_characters("".join(tree.xpath('//div[@class= "article__main js_article js_bannerInArticleWrap"]/p[position()>0]/text()')))
+			item["Price"] = remove_unwanted_characters(objects[i].xpath('article//strong[@class="price price--hrk"]/text()')[0]) + "€"
+			item["Title"] = remove_unwanted_characters(objects[i].xpath('article//h3[@class="entity-title"]/a/text()')[0])
+			item["PublishedTime"] = remove_unwanted_characters(objects[i].xpath('article//time[@class="date date--full"]/text()')[0])
+			neki = item["Location"] = remove_unwanted_characters(objects[i].xpath('article//div[@class="entity-description-main"]/text()')[1])
 			data[i] = item
 		return json.dumps(data, indent=4, sort_keys=True, ensure_ascii=False)
 	elif "siol" in SOURCE_NAME:
