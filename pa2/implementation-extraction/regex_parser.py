@@ -1,3 +1,4 @@
+
 import re
 import json
 import codecs
@@ -15,10 +16,6 @@ over_stock = [
 
 cleaner = Cleaner()
 
-def regex_parser(html_code, page_source):
-<<<<<<< Updated upstream
-    return 0
-
 def rtv(page):
     return 0
 
@@ -27,16 +24,23 @@ def overstock(page):
 
 def tretja_stran(page):
     return 0
-=======
-    for page in rtv_slo:
-        #pageContent = open(page, 'r').read()
-        print(parse_rtv(read_page(page)))
-        #print(parse_rtv(read_page(pageContent)))
+def regex_parser(html_code, page_source):
+
+    return 0
+
+
+
+    
 
 def read_page(page_path):
     return codecs.open(page_path, encoding='utf-8', errors='replace').read()
 
 def parse_rtv(page):
+
+    for page in rtv_slo:
+        #pageContent = open(page, 'r').read()
+        print(parse_rtv(read_page(page)))
+        #print(parse_rtv(read_page(pageContent)))
 
     page = cleaner.clean_html(page)
     # print(page)
@@ -82,4 +86,6 @@ def parse_rtv(page):
             },
             ensure_ascii=False)
     )
->>>>>>> Stashed changes
+
+
+

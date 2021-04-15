@@ -1,0 +1,6 @@
+requests
+reppy
+url_normalize
+selenium
+beautifulsoup4
+lxml
