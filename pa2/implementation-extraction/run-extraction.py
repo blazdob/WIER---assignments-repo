@@ -11,9 +11,9 @@ siol2 = '../input-extraction/Novi kodiaq na cesti ga bo težko ločiti od stareg
 
 
 
-page_source = siol1  # rtvslo1, rtvslo2, overstock1, overstock2, ....., .......
+page_source = overstock1  # rtvslo1, rtvslo2, overstock1, overstock2, ....., .......
 #print(open(page_source))
-SOURCE_NAME = "siol1"
+SOURCE_NAME = "overstock1"
 
 ##### MAIN PROGRAM
 
