@@ -69,6 +69,7 @@ def parse_rtv(page):
     date = match.group(1)
     date = ' '.join(date.split())
 
+    #Lead - RTV
     regex = r"<p class=\"lead\">(.*)</p>"
     match = re.compile(regex).search(page)
     abstract = match.group(1)
@@ -106,10 +107,10 @@ def parse_overstock(page):
 
     #LastPrices - Overstock
     regex = r"<s>(.*?)</s>"
-    lastPrices = []
+    listPrices = []
     matches = re.finditer(regex, page)
     for match in matches:
-        lastPrices.append(match.group(1))
+        listPrices.append(match.group(1))
 
     #Prices - Overstock
     regex = r"<b>([$€]\s*[0-9\.,]+)</b>"
@@ -145,7 +146,7 @@ def parse_overstock(page):
         try:
             prdcts.append(
                 {
-                    "ListPrice": lastPrices[prodId],
+                    "ListPrice": listPrices[prodId],
                     "Price": prices[prodId],
                     "Saving": savings[prodId],
                     "SavingPercent": percents[prodId],
@@ -179,12 +180,12 @@ def parse_siol(page):
     con = match.group(1).replace("\n", "").replace(";", "")
     date = re.sub(r'[^.A-Za-z0-9]+', '', con)
 
-    #First paragraph - Siol
+    #Intro - Siol
     regex = r"<div class=\"article__intro js_articleIntro\">(.*?)</div>"
     match = re.search(regex, page, re.DOTALL)
     first = match.group(1)
     content3 = re.sub(r"<[^>]*>", "", first)
-    abstract = re.sub(r'[^. šŠčČžŽA-Za-z0-9]+', "", content3)
+    intro = re.sub(r'[^. šŠčČžŽA-Za-z0-9]+', "", content3)
 
     #Content - Siol
     regex = r"<div class=\"article__main js_article js_bannerInArticleWrap\">(.*?)</div>"
@@ -200,7 +201,7 @@ def parse_siol(page):
                 "Author": author,
                 "PublishedTime": date,
                 "Title": title,
-                "Abstract": abstract,
+                "Intro": intro,
                 "Content": content
             },
             ensure_ascii=False)
