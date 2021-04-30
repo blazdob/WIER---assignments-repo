@@ -1,5 +1,4 @@
 import os
-import numpy as np
 import sys
 
 overstock1 = '../input-extraction/overstock.com/jewelry01.html'
@@ -27,7 +26,7 @@ output = ""
 try:
     if sys.argv[1] == "A":
         from regex_parser import regex_parser
-        output = regex_parser(html_code, SOURCE_NAME)
+        regex_parser(html_code, SOURCE_NAME)
     elif sys.argv[1] == "B":
         from xpath_parser import xpath_parser
         output = xpath_parser(html_code, SOURCE_NAME)   
