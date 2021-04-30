@@ -283,8 +283,14 @@ def generate_regex(wrapper):
                 childix += 1
 
 
-def roadrunner_parser():
-    pass
+def roadrunner_parser(html1, html2):
+    wrapper_soup = BeautifulSoup(html1, "html.parser")
+    sample_soup = BeautifulSoup(html2, "html.parser")
+    clean_soup(wrapper_soup)
+    clean_soup(sample_soup)
+    match_strings_and_optionals(wrapper_soup, sample_soup)
+    generate_regex(wrapper_soup)
+    return str(wrapper_soup)
 
 
 def match(wrapper, sample):

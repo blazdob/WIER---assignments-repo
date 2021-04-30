@@ -43,8 +43,16 @@ try:
             print(xpath_parser(f.read(), "siol2"))
         #output = xpath_parser(html_code, SOURCE_NAME)
     elif sys.argv[1] == "C":
-        from todo_3_implementation_name import name #change
-        output = name(html_code, SOURCE_NAME)    #change
+        from roadrunner_parser import roadrunner_parser
+        with open(overstock1, "r") as f1:
+            with open(overstock2, "r") as f2:
+                print(roadrunner_parser(f1.read(), f2.read()))
+        with open(rtvslo1, "r", encoding="utf8") as f1:
+            with open(rtvslo2, "r", encoding="utf8") as f2:
+                print(roadrunner_parser(f1.read(), f2.read()))
+        with open(siol1, "r", encoding="utf8") as f1:
+            with open(siol2, "r", encoding="utf8") as f2:
+                print(roadrunner_parser(f1.read(), f2.read()))
 except Exception as error:
     print(error)
 
