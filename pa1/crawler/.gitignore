@@ -1,4 +1,3 @@
 db/pgdata/*
 .vscode/*
 config.ini
-__pycache__
