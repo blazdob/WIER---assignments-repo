@@ -10,6 +10,152 @@ import copy
 from bs4 import BeautifulSoup, NavigableString, Tag, Comment
 
 
+def match_strings_and_optionals(wrapper, sample):
+    wrapix = 0
+    sampix = 0
+    while True:
+        if wrapix >= len(wrapper.contents) or sampix >= len(sample.contents):
+            break
+
+        welem = wrapper.contents[wrapix]
+        selem = sample.contents[sampix]
+
+        # match strings
+        if isinstance(welem, NavigableString) and isinstance(selem, NavigableString):
+            matchstr = match_strings(str(welem), str(selem))
+            welem.string.replace_with(matchstr)
+            selem.string.replace_with(matchstr)
+            wrapix += 1
+            sampix += 1
+            continue
+
+        if isinstance(welem, Tag) and isinstance(selem, Tag):
+            if welem.name == selem.name:
+                # match same tags recursively
+                match_strings_and_optionals(welem, selem)
+                wrapix += 1
+                sampix += 1
+                continue
+
+        # "greedy" string matching
+        # optional tag in sample when string is current in wrapper and next in sample
+        if isinstance(welem, NavigableString) and isinstance(selem.next_sibling, NavigableString):
+            optional = copy.copy(selem)
+            wrapper.contents.insert(wrapix, NavigableString(")?"))
+            wrapper.contents.insert(wrapix, optional)
+            wrapper.contents.insert(wrapix, NavigableString("("))
+            wrapix += 3
+            sampix += 1
+            continue
+
+        # "greedy" string matching
+        # optional tag in wrapper when string is current in sample and next in wrapper
+        if isinstance(selem, NavigableString) and isinstance(welem.next_sibling, NavigableString):
+            wrapper.contents.insert(wrapix, NavigableString("("))
+            wrapper.contents.insert(wrapix + 2, NavigableString(")?"))
+            wrapix += 3
+            continue
+
+        # check one step forward in both sample and wrapper
+        if isinstance(selem.next_sibling, Tag) and selem.next_sibling.name == welem.name:
+            # next in sample is the same tag as current wrapper tag, designate current
+            # sample tag as optional and try to match next sample tag in next loop iteration
+            optional = copy.copy(selem)
+            wrapper.contents.insert(wrapix, NavigableString(")?"))
+            wrapper.contents.insert(wrapix, optional)
+            wrapper.contents.insert(wrapix, NavigableString("("))
+            wrapix += 3
+            sampix += 1
+            continue
+        if isinstance(welem.next_sibling, Tag) and welem.next_sibling.name == selem.name:
+            # next in wrapper is the same tag as current sample tag, designate current
+            # wrapper tag as optional and try to match next wrapper tag in next loop iteration
+            wrapper.contents.insert(wrapix, NavigableString("("))
+            wrapper.contents.insert(wrapix + 2, NavigableString(")?"))
+            wrapix += 3
+            continue
+
+        # none of current tags cross match next, designate sample's as optional
+        optional = copy.copy(selem)
+        wrapper.contents.insert(wrapix, NavigableString(")?"))
+        wrapper.contents.insert(wrapix, optional)
+        wrapper.contents.insert(wrapix, NavigableString("("))
+        wrapix += 3
+        sampix += 1
+
+    while wrapix < len(wrapper.contents):
+        wrapper.contents.insert(wrapix, NavigableString("("))
+        wrapper.contents.insert(wrapix + 2, NavigableString(")?"))
+        wrapix += 3
+    while sampix < len(sample.contents):
+        optional = copy.copy(sample.contents[sampix])
+        wrapper.contents.insert(wrapix, NavigableString(")?"))
+        wrapper.contents.insert(wrapix, optional)
+        wrapper.contents.insert(wrapix, NavigableString("("))
+        wrapix += 3
+        sampix += 1
+
+
+def find_iterators(wrapper):
+    if isinstance(wrapper, NavigableString):
+        return
+    if isinstance(wrapper, Tag):
+        childix = 0
+        while childix < len(wrapper.contents):
+            childix_copy = childix
+            same_cons_siblings = 0
+            for child in wrapper.contents[childix + 1:]:
+                if child == wrapper.contents[childix]:
+                    same_cons_siblings += 1
+                else:
+                    break
+            if same_cons_siblings:
+                for i in range(same_cons_siblings):
+                    wrapper.contents[childix + 1].extract()
+                wrapper.contents.insert(childix, NavigableString("("))
+                wrapper.contents.insert(childix + 2, NavigableString(")+"))
+                childix += 3
+            else:
+                childix += 1
+            find_iterators(wrapper.contents[childix_copy])
+
+
+def clean_soup(soup):
+    if isinstance(soup, BeautifulSoup):
+        clean_soup(soup.html)
+    elif isinstance(soup, NavigableString):
+        if str(soup).isspace():
+            soup.extract()
+        else:
+            newstr = str(soup.string).strip()
+            soup.string.replace_with(newstr)
+    elif isinstance(soup, Comment):
+        soup.extract()
+    else:
+        ix = 0
+        while ix < len(soup.contents):
+            length = len(soup.contents)
+            clean_soup(soup.contents[ix])
+            if length == len(soup.contents):
+                ix = ix + 1
+
+
+def roadrunner_parser(html1, html2):
+    wrapper_soup = BeautifulSoup(html1, "html.parser")
+    sample_soup = BeautifulSoup(html2, "html.parser")
+    clean_soup(wrapper_soup)
+    clean_soup(sample_soup)
+    match_strings_and_optionals(wrapper_soup, sample_soup)
+    find_iterators(wrapper_soup)
+    return str(wrapper_soup)
+
+
+
+##############################################################################
+################ FAILED IMPLEMENTATIONS ######################################
+##############################################################################
+
+
 ITERATOR_WRAPPER = 1
 ITERATOR_SAMPLE = 2
 
@@ -95,179 +241,14 @@ crescenzi_sample2 = """
 </ul>
 </html>"""
 
+
 iterators = set()
 optionals = set()
 
 
-def match_strings_and_optionals(wrapper, sample):
-    # if not wrapper.contents or not sample.contents: return
-
-    # if wrapper.contents:
-    #     print(wrapper.contents)
-    #     welem = wrapper.contents[0]
-    # else:
-    #     welem = None
-    # if sample.contents:
-    #     print(sample.contents)
-    #     selem = sample.contents[0]
-    # else:
-    #     selem = None
-    # while True:
-    #     print("welem: {}".format(welem))
-    #     print("selem: {}".format(welem))
-    #     if not welem or not selem:
-    #         break
-
-    #     # match strings
-    #     if isinstance(welem, NavigableString) and isinstance(selem, NavigableString):
-    #         str1 = str(welem)
-    #         str2 = str(selem)
-    #         matchstr = match_strings(str1, str2)
-    #         print("str1: {}, str2: {}, matchstr: {}".format(str1, str2, matchstr))
-    #         welem.string.replace_with(matchstr)
-    #         selem.string.replace_with(matchstr)
-    #         welem = welem.next_sibling
-    #         selem = selem.next_sibling
-    #         continue
-
-    #     if isinstance(welem, Tag) and isinstance(selem, Tag):
-    #         if welem.name == selem.name:
-    #             print("recursively matching")
-    #             # match same tags recursively
-    #             match_strings_and_optionals(welem, selem)
-    #             welem = welem.next_sibling
-    #             selem = selem.next_sibling
-    #             continue
-
-    #     # "greedy" string matching
-    #     # optional tag in sample when string is current in wrapper and next in sample
-    #     if isinstance(welem, NavigableString) and isinstance(selem.next_sibling, NavigableString):
-    #         optional = copy.copy(selem)
-    #         optionals.add(optional)
-    #         welem.insert_before(optional)
-    #         selem = selem.next_sibling
-    #         continue
-
-    #     # "greedy" string matching
-    #     # optional tag in wrapper when string is current in sample and next in wrapper
-    #     if isinstance(selem, NavigableString) and isinstance(welem.next_sibling, NavigableString):
-    #         optionals.add(welem)
-    #         welem = welem.next_sibling
-    #         continue
-
-    #     # check one step forward in both sample and wrapper
-    #     if isinstance(selem.next_sibling, Tag) and selem.next_sibling.name == welem.name:
-    #         # next in sample is the same tag as current wrapper tag, designate current
-    #         # sample tag as optional and try to match next sample tag in next loop iteration
-    #         optional = copy.copy(selem)
-    #         optionals.add(optional)
-    #         welem.insert_before(optional)
-    #         selem = selem.next_sibling
-    #         continue
-    #     if isinstance(welem.next_sibling, Tag) and welem.next_sibling.name == selem.name:
-    #         # next in wrapper is the same tag as current sample tag, designate current
-    #         # wrapper tag as optional and try to match next wrapper tagin next loop iteration
-    #         optionals.add(welem)
-    #         welem = welem.next_sibling
-    #         continue
-        
-    #     # none of current tags cross match next, designate sample's as optional
-    #     optional = copy.copy(selem)
-    #     optionals.add(optional)
-    #     welem.insert_before(optional)
-    #     welem = welem.next_sibling
-    
-    # while welem:
-    #     optionals.add(welem)
-    #     welem = welem.next_sibling
-    # while selem:
-    #     welem = wrapper.contents[-1]
-    #     optional = copy.copy(selem)
-    #     optionals.add(optional)
-    #     welem.insert_after(selem)
-    #     selem = selem.next_sibling
-
-    wrapix = 0
-    sampix = 0
-    while True:
-        if wrapix >= len(wrapper.contents) or sampix >= len(sample.contents):
-            break
-
-        welem = wrapper.contents[wrapix]
-        selem = sample.contents[sampix]
-
-        # match strings
-        if isinstance(welem, NavigableString) and isinstance(selem, NavigableString):
-            matchstr = match_strings(str(welem), str(selem))
-            welem.string.replace_with(matchstr)
-            selem.string.replace_with(matchstr)
-            wrapix += 1
-            sampix += 1
-            continue
-
-        if isinstance(welem, Tag) and isinstance(selem, Tag):
-            if welem.name == selem.name:
-                # match same tags recursively
-                match_strings_and_optionals(welem, selem)
-                wrapix += 1
-                sampix += 1
-                continue
-
-        # "greedy" string matching
-        # optional tag in sample when string is current in wrapper and next in sample
-        if isinstance(welem, NavigableString) and isinstance(selem.next_sibling, NavigableString):
-            optional = copy.copy(selem)
-            wrapper.contents.insert(wrapix, optional)
-            optionals.add(optional)
-            wrapix += 1
-            sampix += 1
-            continue
-
-        # "greedy" string matching
-        # optional tag in wrapper when string is current in sample and next in wrapper
-        if isinstance(selem, NavigableString) and isinstance(welem.next_sibling, NavigableString):
-            optionals.add(welem)
-            wrapix += 1
-            continue
-
-        # check one step forward in both sample and wrapper
-        if isinstance(selem.next_sibling, Tag) and selem.next_sibling.name == welem.name:
-            # next in sample is the same tag as current wrapper tag, designate current
-            # sample tag as optional and try to match next sample tag in next loop iteration
-            optional = copy.copy(selem)
-            wrapper.contents.insert(wrapix, optional)
-            optionals.add(optional)
-            wrapix += 1
-            sampix += 1
-            continue
-        if isinstance(welem.next_sibling, Tag) and welem.next_sibling.name == selem.name:
-            # next in wrapper is the same tag as current sample tag, designate current
-            # wrapper tag as optional and try to match next wrapper tagin next loop iteration
-            optionals.add(welem)
-            wrapix += 1
-            continue
-        
-        # none of current tags cross match next, designate sample's as optional
-        optional = copy.copy(selem)
-        wrapper.contents.insert(wrapix, optional)
-        optionals.add(optional)
-        wrapix += 1
-        sampix += 1
-    
-    while wrapix < len(wrapper.contents):
-        optionals.add(wrapper.contents[wrapix])
-        wrapix += 1
-    while sampix < len(sample.contents):
-        optional = copy.copy(selem)
-        wrapper.contents.insert(wrapix, optional)
-        optionals.add(optional)
-        wrapix += 1
-        sampix += 1
-
-
 def generate_regex(wrapper):
-    if isinstance(wrapper, BeautifulSoup):
-        generate_regex(wrapper.html)
+    #if isinstance(wrapper, BeautifulSoup):
+    #    generate_regex(wrapper.html)
     if isinstance(wrapper, NavigableString):
         if wrapper in optionals:
             wrapper.string.replace_with("({})?".format(str(wrapper.string)))
@@ -281,16 +262,6 @@ def generate_regex(wrapper):
                 childix += 3
             else:
                 childix += 1
-
-
-def roadrunner_parser(html1, html2):
-    wrapper_soup = BeautifulSoup(html1, "html.parser")
-    sample_soup = BeautifulSoup(html2, "html.parser")
-    clean_soup(wrapper_soup)
-    clean_soup(sample_soup)
-    match_strings_and_optionals(wrapper_soup, sample_soup)
-    generate_regex(wrapper_soup)
-    return str(wrapper_soup)
 
 
 def match(wrapper, sample):
@@ -384,26 +355,6 @@ def match(wrapper, sample):
             optionals.add(child)
 
 
-def clean_soup(soup):
-    if isinstance(soup, BeautifulSoup):
-        clean_soup(soup.html)
-    elif isinstance(soup, NavigableString):
-        if str(soup).isspace():
-            soup.extract()
-        else:
-            newstr = str(soup.string).strip()
-            soup.string.replace_with(newstr)
-    elif isinstance(soup, Comment):
-        soup.extract()
-    else:
-        ix = 0
-        while ix < len(soup.contents):
-            length = len(soup.contents)
-            clean_soup(soup.contents[ix])
-            if length == len(soup.contents):
-                ix = ix + 1
-
-
 # Finding distance of string elements is stupid because we don't do any more
 # advanced string matching. Also, there are two possible strategies: do
 # we try to match string or not? How can we know if this approach is good?
@@ -469,32 +420,22 @@ def match_strings(s1, s2):
 
 
 def main():
-    pg_base = os.path.join("..", "input-extraction", "overstock.com")
-    pg1_file = os.path.join(pg_base, "jewelry01.html")
-    pg2_file = os.path.join(pg_base, "jewelry02.html")
- 
-    with open(pg1_file, "r") as f1:
-        with open(pg2_file, "r") as f2:
-            html_wrapper = f1.read()
-            html_sample = f2.read()
-            #wrapper_soup = BeautifulSoup(html_wrapper, "html.parser")
-            #sample_soup = BeautifulSoup(html_sample, "html.parser")
-            wrapper_soup = BeautifulSoup(crescenzi_wrapper1, "html.parser")
-            sample_soup = BeautifulSoup(crescenzi_sample1, "html.parser")
-            #wrapper_soup = BeautifulSoup(crescenzi_sample1, "html.parser")
-            #sample_soup = BeautifulSoup(crescenzi_wrapper1, "html.parser")
-            clean_soup(wrapper_soup)
-            clean_soup(sample_soup)
-            #print(wrapper_soup)
-            #print(sample_soup)
-            #print("##################################################################")
-            match_strings_and_optionals(wrapper_soup.html, sample_soup.html)
-            #print(wrapper_soup)
-            #print(sample_soup)
-            #print("##################################################################")
-            generate_regex(wrapper_soup)
-            print(wrapper_soup)
-            #print(optionals)
+    wrapper_soup = BeautifulSoup(crescenzi_wrapper1, "html.parser")
+    sample_soup = BeautifulSoup(crescenzi_sample1, "html.parser")
+
+    clean_soup(wrapper_soup)
+    clean_soup(sample_soup)
+    #print(wrapper_soup)
+    #print(sample_soup)
+    #print("##################################################################")
+
+    match_strings_and_optionals(wrapper_soup.html, sample_soup.html)
+    #print(wrapper_soup)
+    #print(sample_soup)
+    #print("##################################################################")
+
+    find_iterators(wrapper_soup)
+    print(wrapper_soup)
 
 
 if __name__ == "__main__":
