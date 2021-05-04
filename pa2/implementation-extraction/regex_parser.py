@@ -24,17 +24,20 @@ def regex_parser(html_code, page_source):
 
     for page in rtv_slo:
         tmp = prepare_page(page)
-        tmp2 = parse_rtv(tmp)
+        #tmp2 = parse_rtv(tmp)
+        print(parse_rtv(tmp))
 
 
     for page in over_stock:
         tmp = prepare_page(page)
-        tmp2 = parse_overstock(tmp)
+        #tmp2 = parse_overstock(tmp)
+        print(parse_overstock(tmp))
 
 
     for page in siol:
         tmp = prepare_page(page)
-        tmp2 = parse_siol(tmp)
+        #tmp2 = parse_siol(tmp)
+        print(parse_siol(tmp))
 
         #print(tmp2)
 
@@ -193,7 +196,7 @@ def parse_siol(page):
     first = match.group(1)
     con = re.sub(r"<[^>]*>", "", first)
     content = re.sub(r'[^. šŠčČžŽA-Za-z0-9]+', "", con)
-    print(content)
+    #print(content)
 
     return (
         json.dumps(
