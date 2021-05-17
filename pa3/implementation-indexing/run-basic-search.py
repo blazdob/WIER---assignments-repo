@@ -3,7 +3,7 @@ import datetime
 from bs4 import BeautifulSoup
 from nltk import word_tokenize
 from processing import preprocess, process_document, documents, \
-    extract_snippets, print_results_header, print_results
+    extract_snippets, print_results_header, print_results, NUM_RESULTS
 
 
 # result_documents is a list of dictionaries of document name, frequency sum
@@ -64,7 +64,7 @@ def main():
     print() # blank line
 
     print_results_header()
-    print_results(result_documents)
+    print_results(result_documents[:NUM_RESULTS])
 
 
 if __name__ == "__main__":

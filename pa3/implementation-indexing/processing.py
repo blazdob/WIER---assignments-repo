@@ -47,6 +47,7 @@ stop_words_slovene = set(stopwords.words("slovene")).union(set(
 
 DOCUMENT_FOLDER = os.path.join(os.pardir, "documents")
 INDEX_FILENAME = "inverted-index.db"
+NUM_RESULTS = 3
 
 
 def preprocess(text):
