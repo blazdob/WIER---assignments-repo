@@ -48,6 +48,7 @@ stop_words_slovene = set(stopwords.words("slovene")).union(set(
 DOCUMENT_FOLDER = os.path.join(os.pardir, "documents")
 INDEX_FILENAME = "inverted-index.db"
 NUM_RESULTS = 3
+NEIGHBORHOOD = 3
 
 
 def preprocess(text):
@@ -152,12 +153,35 @@ def connect_database():
 
 def extract_snippets(tokenized_words, indexes):
     """Returns a string of snippets around words at given indexes."""
+    # First, convert a list of indexes to a list of tuples that
+    # represent ranges from which snippets should be built.
+    # This is done to merge snippets whose indexes overlap
+    # with another snippet's neighborhood
+    ranges = []
+    i = 0
+    while i < len(indexes):
+        rangeStart = indexes[i]
+        rangeStop = indexes[i]
+
+        # swallow the next n indexes into range that are less
+        # than neighborhood away one from another
+        j = i + 1
+        if j < len(indexes):
+            while abs(indexes[j] - rangeStop) < NEIGHBORHOOD + 1:
+                rangeStop = indexes[j]
+                j += 1
+                if j == len(indexes):
+                    break
+        ranges.append((rangeStart, rangeStop))
+        i = j
+
+    # Build snippets from ranges
     snippets = ""
-    for ix in indexes:
-        startix = ix - 3
+    for rangeStart, rangeStop in ranges:
+        startix = rangeStart - NEIGHBORHOOD
         if startix < 0:
             startix = 0
-        stopix = ix + 4
+        stopix = rangeStop + NEIGHBORHOOD + 1
         snippet_tokens = tokenized_words[startix:stopix]
         # Detokenization: https://stackoverflow.com/a/41305584
         snippets += "{} ... ".format(TreebankWordDetokenizer().detokenize(snippet_tokens))
