@@ -4,7 +4,7 @@ import datetime
 from bs4 import BeautifulSoup
 from nltk import word_tokenize
 from processing import DOCUMENT_FOLDER, extract_snippets, preprocess, \
-    print_results_header, print_results, connect_database
+    print_results_header, print_results, connect_database, NUM_RESULTS
 
 def find_documents(query_words, dbcon):
     cur = dbcon.cursor()
@@ -18,31 +18,43 @@ def find_documents(query_words, dbcon):
     cur.execute("SELECT * FROM Posting WHERE word IN ({})".format(template_str), query_words)
 
     # result_documents is a dictionary of entries with document name as key and
-    # frequency, snippets and tokenized word list in a dictionary as a value
+    # frequency, document name (needed later) and indexes in a dictionary as a value
     result_documents = {}
     for posting in cur.fetchall():
         docname = posting[1]
         if docname in result_documents: # take existing doc entry
             doc = result_documents[docname]
-        else: # create new doc entry; have to read document and tokenize
-            filename = os.path.join(DOCUMENT_FOLDER, docname)
-            with open(filename, "r", encoding="utf8") as f:
-                soup = BeautifulSoup(f.read(), "html.parser")
-                text = soup.get_text()
-                toktext = word_tokenize(text)
-                doc = {
-                    "frequency": 0,
-                    "snippets": " ... ",
-                    "toktext": toktext,
-                    "name": docname
-                }
-                result_documents[docname] = doc
+        else: # create new doc entry
+            doc = {
+                "frequency": 0,
+                "indexes": [],
+                "name": docname
+            }
+            result_documents[docname] = doc
         # update doc entry
         doc["frequency"] += posting[2]
         indexes = [int(ix) for ix in posting[3].split(",")]
-        doc["snippets"] += extract_snippets(doc["toktext"], indexes)
+        doc["indexes"].extend(indexes)
 
-    return result_documents.values()
+    # sort documents by frequency
+    sorted_documents = sorted(
+        result_documents.values(),
+        key=lambda doc: doc["frequency"],
+        reverse=True
+    )
+
+    # extract snippets from documents and add them to doc dicts
+    top_documents = sorted_documents[:NUM_RESULTS]
+    for doc in top_documents:
+        filename = os.path.join(DOCUMENT_FOLDER, doc["name"])
+        with open(filename, "r", encoding="utf8") as f:
+            soup = BeautifulSoup(f.read(), "html.parser")
+            text = soup.get_text()
+            toktext = word_tokenize(text)
+            doc["snippets"] = " ... "
+            doc["snippets"] += extract_snippets(toktext, doc["indexes"])
+
+    return top_documents
 
 
 def main():
@@ -65,11 +77,6 @@ def main():
     dbcon = connect_database()
 
     result_documents = find_documents(query_words, dbcon)
-    result_documents = sorted( # sort documents by frequency
-        result_documents,
-        key=lambda doc: doc["frequency"],
-        reverse=True
-    )
 
     dbcon.close()
 
