@@ -17,12 +17,16 @@ def find_documents(query_words):
             tokenized_words = word_tokenize(text)
             postings = process_document(text)
 
+            # sum up frequency and indexes
             frequency = 0
-            snippets = " ... "
+            indexes = []
             for word in query_words:
                 if word in postings:
                     frequency += postings[word]["frequency"]
-                    snippets += extract_snippets(tokenized_words, postings[word]["indexes"])
+                    indexes.extend(postings[word]["indexes"])
+
+            # extracts snippets with indexes
+            snippets = " ... " + extract_snippets(tokenized_words, indexes)
 
             if frequency > 0:
                 result_documents.append({
