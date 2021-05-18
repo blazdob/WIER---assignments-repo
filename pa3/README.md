@@ -1,13 +1,17 @@
 # install anaconda dependencies into proper environment
 `conda install nltk`
 
-# run boostrap.py program that downloads nltk data before any other programs
+# navigate to implementation-indexing folder when running any of the following programs
+
+# run boostrap.py program that downloads nltk data before running any other programs
 `python bootstrap.py`
 
-# running indexing
-- navigate to `implementation-indexing` folder
-- run `python run-indexing.py`
+# run indexing
+`python run-indexing.py`
 
-# running search
-- search with sqlite index: `python run-sqlite-search.py "QUERY"`
+# run search
+- search with sqlite index (need to run indexing first): `python run-sqlite-search.py "QUERY"`
 - search without index: `python run-basic-search.py "QUERY"`
+
+# number of results
+To change number of results, change `NUM_RESULTS` constant in processing module.
