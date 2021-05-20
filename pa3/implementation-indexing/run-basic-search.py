@@ -26,6 +26,7 @@ def find_documents(query_words):
                     indexes.extend(postings[word]["indexes"])
 
             # extracts snippets with indexes
+            indexes.sort() # words are in mixed order
             snippets = " ... " + extract_snippets(tokenized_words, indexes)
 
             if frequency > 0:
