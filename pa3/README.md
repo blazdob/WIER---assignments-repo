@@ -13,5 +13,6 @@
 - search with sqlite index (need to run indexing first): `python run-sqlite-search.py "QUERY"`
 - search without index: `python run-basic-search.py "QUERY"`
 
-# number of results
-To change number of results, change `NUM_RESULTS` constant in processing module.
+# number of results and snippets
+To change number of results and number of snippets, change `NUM_RESULTS` and `NUM_SNIPPETS`
+constants in processing module respectively.

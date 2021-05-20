@@ -47,7 +47,8 @@ stop_words_slovene = set(stopwords.words("slovene")).union(set(
 
 DOCUMENT_FOLDER = os.path.join(os.pardir, "documents")
 INDEX_FILENAME = "inverted-index.db"
-NUM_RESULTS = 3
+NUM_RESULTS = 5
+NUM_SNIPPETS = 10
 NEIGHBORHOOD = 3
 
 
@@ -151,7 +152,7 @@ def connect_database():
     return sqlite3.connect(INDEX_FILENAME)
 
 
-def extract_snippets(tokenized_words, indexes):
+def extract_snippets(tokenized_words, indexes, num_snippets=NUM_SNIPPETS):
     """Returns a string of snippets around words at given indexes."""
     # First, convert a list of indexes to a list of tuples that
     # represent ranges from which snippets should be built.
@@ -177,6 +178,7 @@ def extract_snippets(tokenized_words, indexes):
 
     # Build snippets from ranges
     snippets = ""
+    snipcount = 0
     for rangeStart, rangeStop in ranges:
         startix = rangeStart - NEIGHBORHOOD
         if startix < 0:
@@ -185,6 +187,9 @@ def extract_snippets(tokenized_words, indexes):
         snippet_tokens = tokenized_words[startix:stopix]
         # Detokenization: https://stackoverflow.com/a/41305584
         snippets += "{} ... ".format(TreebankWordDetokenizer().detokenize(snippet_tokens))
+        snipcount += 1
+        if snipcount == num_snippets:
+            break
     return snippets
 
 
